@@ -12,10 +12,42 @@ static class Main
     CancellationToken ct
   )
   {
-    using (rootObject.ChildOf(assets.SystemRoot, out _))
+    using (rootObject.ChildOf(assets.SystemRoot, out var systemRoot))
     {
-      // test
-      await UniTask.Delay(3000, cancellationToken: ct);
+      while (true)
+      {
+        if (
+          await Title(
+            assets.TitleView,
+            systemRoot.UIRoot.gameObject,
+            ct
+          ) is not int stage
+        )
+        {
+          return;
+        }
+
+        // test
+        Debug.Log(stage);
+        await UniTask.Delay(1000);
+      }
+    }
+  }
+
+  private static async UniTask<int?> Title(
+    TitleView titleViewPrefab,
+    GameObject uiRoot,
+    CancellationToken ct
+  )
+  {
+    using (uiRoot.ChildOf(titleViewPrefab, out var titleView))
+    {
+      var action = await titleView.WaitForActionAsync(ct);
+      return action switch
+      {
+        TitleView.Result.Start s => s.NextStage,
+        _ => null
+      };
     }
   }
 
