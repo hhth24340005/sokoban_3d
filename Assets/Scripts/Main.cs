@@ -8,6 +8,7 @@ static class Main
 {
   private static async UniTask MainAsync(
     GameObject rootObject,
+    AssetRegistry assets,
     CancellationToken ct
   )
   {
@@ -24,12 +25,13 @@ static class Main
     SceneManager.SetActiveScene(rootScene);
     await SceneManager.UnloadSceneAsync(originalScene);
 
+    var assetRegistry = (AssetRegistry)await Resources.LoadAsync("AssetRegistry");
     var rootObject = new GameObject("Root");
     await MainAsync(
       rootObject,
+      assetRegistry,
       ct: Application.exitCancellationToken
     ).SuppressCancellationThrow();
-
     Application.Quit();
 #if UNITY_EDITOR
     UnityEditor.EditorApplication.isPlaying = false;
