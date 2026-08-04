@@ -12,4 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 114ab598c728344d992e2559acae286a, type: 3}
   m_Name: AssetRegistry
   m_EditorClassIdentifier: Assembly-CSharp::AssetRegistry
-  i: 0
+  systemRoot: {fileID: 2533960107090192053, guid: 9c469c0df6b5c48459b2c43ab63c9132, type: 3}
+  titleMenuView: {fileID: 0}

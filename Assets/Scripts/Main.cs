@@ -12,8 +12,11 @@ static class Main
     CancellationToken ct
   )
   {
-    // test
-    await UniTask.Delay(3000, cancellationToken: ct);
+    using (rootObject.ChildOf(assets.SystemRoot, out _))
+    {
+      // test
+      await UniTask.Delay(3000, cancellationToken: ct);
+    }
   }
 
   [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
