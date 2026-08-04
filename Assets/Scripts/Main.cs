@@ -29,7 +29,7 @@ static class Main
 
         // test
         Debug.Log(stage);
-        await UniTask.Delay(1000);
+        await Game(assets.GameView, systemRoot.UIRoot.gameObject, ct);
       }
     }
   }
@@ -48,6 +48,18 @@ static class Main
         TitleView.Result.Start s => s.NextStage,
         _ => null
       };
+    }
+  }
+
+  private static async UniTask Game(
+    GameView gameViewPrefab,
+    GameObject uiRoot,
+    CancellationToken ct
+  )
+  {
+    using (uiRoot.ChildOf(gameViewPrefab, out var gameView))
+    {
+      await gameView.WaitForGameClearActionAsync(ct);
     }
   }
 

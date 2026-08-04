@@ -9,7 +9,12 @@ public sealed class AssetRegistry : ScriptableObject
   [SerializeField]
   private TitleView titleView;
 
+  [SerializeField]
+  private GameView gameView;
+
   public SystemRoot SystemRoot => systemRoot;
 
   public TitleView TitleView => titleView;
+
+  public GameView GameView => gameView;
 }
