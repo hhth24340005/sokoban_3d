@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 [CreateAssetMenu(menuName = "Game/AssetRegistry")]
@@ -12,9 +13,14 @@ public sealed class AssetRegistry : ScriptableObject
   [SerializeField]
   private GameView gameView;
 
+  [SerializeField]
+  private GameStagePreset[] gameStagePresets = { };
+
   public SystemRoot SystemRoot => systemRoot;
 
   public TitleView TitleView => titleView;
 
   public GameView GameView => gameView;
+
+  public IReadOnlyList<GameStagePreset> GameStagePresets => gameStagePresets;
 }
