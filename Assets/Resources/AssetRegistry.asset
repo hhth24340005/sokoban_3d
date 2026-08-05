@@ -15,3 +15,5 @@ MonoBehaviour:
   systemRoot: {fileID: 2533960107090192053, guid: 9c469c0df6b5c48459b2c43ab63c9132, type: 3}
   titleView: {fileID: 1542432845705521159, guid: ca5c4d99cb4094620a657ee0d8c2f434, type: 3}
   gameView: {fileID: 2428248757518579982, guid: 165814a5c29234daba629f84ead85649, type: 3}
+  gameStagePresets:
+  - {fileID: 11400000, guid: f3b105f8f35d54834aa443dde3b5818a, type: 2}
