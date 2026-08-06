@@ -1,7 +1,10 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
 
-public interface IStageObjectView { }
+public interface IStageObjectView
+{
+  void TeleportTo(int x, int y, int z);
+}
 
 public interface IMovableView : IStageObjectView
 {

@@ -8,8 +8,9 @@ public class StageObjectViewTranslationTests
   public void AllStageObjectViewImplementationsAreTranslated()
   {
     var preset = ScriptableObject.CreateInstance<GameStagePreset>();
-    var stage = GameStage.Create(preset);
-    var probe = new GameObject(nameof(StageObjectViewTranslationTests));
+    var host = new GameObject(nameof(StageObjectViewTranslationTests));
+    var stage = GameStage.Create(preset, host);
+    var probe = new GameObject($"{nameof(StageObjectViewTranslationTests)}.Probe");
 
     try
     {
@@ -29,7 +30,11 @@ public class StageObjectViewTranslationTests
     }
     finally
     {
+      // Destroying [host] also destroys the board root GameStage.Create nested
+      // under it. DestroyImmediate is required in edit mode (Dispose would call
+      // the edit-mode-illegal Object.Destroy).
       Object.DestroyImmediate(probe);
+      Object.DestroyImmediate(host);
       Object.DestroyImmediate(preset);
     }
   }

@@ -7,26 +7,39 @@ using Cysharp.Threading.Tasks;
 using Unity.VisualScripting;
 using UnityEngine;
 
-public sealed class GameStage
+public sealed class GameStage : IDisposable
 {
   private readonly Vector3Int size;
   private readonly List<List<GameObject>> cells;
+  private readonly ScopedGameObject root;
 
-  private GameStage(Vector3Int size, List<List<GameObject>> cells)
+  private GameStage(Vector3Int size, List<List<GameObject>> cells, ScopedGameObject root)
   {
     this.size = size;
     this.cells = cells;
+    this.root = root;
   }
 
-  public static GameStage Create(GameStagePreset preset)
+  public static GameStage Create(GameStagePreset preset, GameObject parent)
   {
-    var cells = preset.Cells
-      .Select(cell => cell.GameObjects
-        .Select(prefab => UnityEngine.Object.Instantiate(prefab))
-        .ToList())
-      .ToList();
-    return new GameStage(preset.Size, cells);
+    var root = parent.ChildOf(nameof(GameStage));
+    var cells = new List<List<GameObject>>(preset.Cells.Count);
+    for (var index = 0; index < preset.Cells.Count; index++)
+    {
+      var (x, y, z) = FromIndex(index, preset.Size);
+      var cell = new List<GameObject>();
+      foreach (var prefab in preset.Cells[index].GameObjects)
+      {
+        var spawned = root.GameObject.ChildOf(prefab).GameObject;
+        spawned.GetComponent<IStageObjectView>()?.TeleportTo(x, y, z);
+        cell.Add(spawned);
+      }
+      cells.Add(cell);
+    }
+    return new GameStage(preset.Size, cells, root);
   }
+
+  public void Dispose() => root.Dispose();
 
   public IReadOnlyList<T> Get<T>(int x, int y, int z) where T : IStageObject
   {
@@ -48,6 +61,9 @@ public sealed class GameStage
 
   private int ToIndex(int x, int y, int z) =>
     x + y * size.x + z * size.x * size.y;
+
+  private static (int x, int y, int z) FromIndex(int index, Vector3Int size) =>
+    (index % size.x, index / size.x % size.y, index / (size.x * size.y));
 
   internal IStageObject ToModel(IStageObjectView view) => view switch
   {

@@ -9,6 +9,11 @@ public abstract class MovableView :
   [SerializeField]
   private float moveSeconds = 0.5f;
 
+  public void TeleportTo(int x, int y, int z)
+  {
+    transform.localPosition = new Vector3(x, y, z);
+  }
+
   public async UniTask MoveTo(
     int x,
     int y,
