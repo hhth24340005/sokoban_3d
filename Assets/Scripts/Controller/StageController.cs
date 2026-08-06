@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
@@ -12,6 +13,18 @@ public sealed class StageController
   {
     this.stage = stage;
   }
+
+  public bool IsCleared() =>
+    stage
+      .GetAll<IGoalStageObject>()
+      .All(goal =>
+        stage
+          .Get<ISubjectBoxStageObject>(
+            goal.Position.x,
+            goal.Position.y,
+            goal.Position.z
+          ).Count > 0
+      );
 
   public async UniTask Step(Direction direction, CancellationToken ct)
   {

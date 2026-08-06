@@ -81,11 +81,15 @@ static class Main
     using (uiRoot.ChildOf(gameViewPrefab, out var gameView))
     {
       var controller = new StageController(stage);
-      using var stepLoopCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-      var stepLoop = StepLoop(controller, input, stepLoopCts.Token);
-      await gameView.WaitForGameClearActionAsync(ct);
-      stepLoopCts.Cancel();
-      await stepLoop.SuppressCancellationThrow();
+      using var gameplayCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+      var stepLoop = StepLoop(controller, input, gameplayCts.Token).Preserve();
+      var debugClear = gameView.WaitForGameClearActionAsync(gameplayCts.Token).Preserve();
+      await UniTask.WhenAny(stepLoop, debugClear);
+      gameplayCts.Cancel();
+      await UniTask.WhenAll(
+        stepLoop.SuppressCancellationThrow(),
+        debugClear.SuppressCancellationThrow()
+      );
     }
   }
 
@@ -95,7 +99,7 @@ static class Main
     CancellationToken ct
   )
   {
-    while (true)
+    while (!controller.IsCleared())
     {
       var direction = await input.NextStepDirection(ct);
       await controller.Step(direction, ct);
