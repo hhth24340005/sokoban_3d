@@ -36,7 +36,52 @@ public sealed class GameStage : IDisposable
       }
       cells.Add(cell);
     }
+    CreateFloor(preset, root);
+    CreateWalls(preset, root);
     return new GameStage(preset.Size, cells, root);
+  }
+
+  private static void CreateFloor(GameStagePreset preset, ScopedGameObject root)
+  {
+    var size = preset.Size;
+    var floor = root.GameObject.ChildOf(preset.FloorPrefab).GameObject;
+    floor.transform.localScale = new Vector3(size.x, 1f, size.z);
+    floor.transform.localPosition = new Vector3((size.x - 1) / 2f, 0f, (size.z - 1) / 2f);
+  }
+
+  private static void CreateWalls(GameStagePreset preset, ScopedGameObject root)
+  {
+    var size = preset.Size;
+    var center = new Vector3((size.x - 1) / 2f, 0f, (size.z - 1) / 2f);
+    var offsetX = new Vector3(size.x / 2f, 0f, 0f);
+    var offsetZ = new Vector3(0f, 0f, size.z / 2f);
+    var dir = new (Vector3, float)[]
+    {
+      (center - offsetZ, size.x),
+      (center - offsetX, size.z),
+      (center + offsetZ, size.x),
+      (center + offsetX, size.z),
+    };
+    for (int i = 0; i < dir.Length; i++)
+    {
+      (var pos, var len) = dir[i];
+      CreateWall(preset.WallPrefab, root, pos, 90f * i, len, size.y);
+    }
+  }
+
+  private static void CreateWall(
+    GameObject prefab,
+    ScopedGameObject root,
+    Vector3 position,
+    float yaw,
+    float length,
+    float height
+  )
+  {
+    var wall = root.GameObject.ChildOf(prefab).GameObject;
+    wall.transform.localPosition = position;
+    wall.transform.localRotation = Quaternion.Euler(0f, yaw, 0f);
+    wall.transform.localScale = new Vector3(length, height, 1f);
   }
 
   public void Dispose() => root.Dispose();

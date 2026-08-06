@@ -13,9 +13,19 @@ public sealed class GameStagePreset : ScriptableObject
   [SerializeField]
   private Cell[] cells = { };
 
+  [SerializeField]
+  private GameObject? floorPrefab;
+
+  [SerializeField]
+  private GameObject? wallPrefab;
+
   public Vector3Int Size => size;
 
   public IReadOnlyList<Cell> Cells => cells;
+
+  public GameObject? FloorPrefab => floorPrefab;
+
+  public GameObject? WallPrefab => wallPrefab;
 }
 
 [Serializable]

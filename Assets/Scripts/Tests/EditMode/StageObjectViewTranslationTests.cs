@@ -1,5 +1,6 @@
 using System.Linq;
 using NUnit.Framework;
+using UnityEditor;
 using UnityEngine;
 
 public class StageObjectViewTranslationTests
@@ -8,6 +9,10 @@ public class StageObjectViewTranslationTests
   public void AllStageObjectViewImplementationsAreTranslated()
   {
     var preset = ScriptableObject.CreateInstance<GameStagePreset>();
+    var floorPrefab = new GameObject($"{nameof(StageObjectViewTranslationTests)}.Floor");
+    var wallPrefab = new GameObject($"{nameof(StageObjectViewTranslationTests)}.Wall");
+    AssignPrefabs(preset, floorPrefab, wallPrefab);
+
     var host = new GameObject(nameof(StageObjectViewTranslationTests));
     var stage = GameStage.Create(preset, host);
     var probe = new GameObject($"{nameof(StageObjectViewTranslationTests)}.Probe");
@@ -36,6 +41,16 @@ public class StageObjectViewTranslationTests
       Object.DestroyImmediate(probe);
       Object.DestroyImmediate(host);
       Object.DestroyImmediate(preset);
+      Object.DestroyImmediate(floorPrefab);
+      Object.DestroyImmediate(wallPrefab);
     }
+  }
+
+  private static void AssignPrefabs(GameStagePreset preset, GameObject floorPrefab, GameObject wallPrefab)
+  {
+    var serialized = new SerializedObject(preset);
+    serialized.FindProperty("floorPrefab").objectReferenceValue = floorPrefab;
+    serialized.FindProperty("wallPrefab").objectReferenceValue = wallPrefab;
+    serialized.ApplyModifiedPropertiesWithoutUndo();
   }
 }
