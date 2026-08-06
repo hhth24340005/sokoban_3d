@@ -23,7 +23,7 @@ public class StageObjectViewTranslationTests
       {
         var view = (IStageObjectView)probe.AddComponent(viewType);
         Assert.DoesNotThrow(
-          () => stage.ToModel(view),
+          () => stage.ToModel(view, Vector3Int.zero),
           $"GameStage does not translate {viewType} into a model-side IStageObject."
         );
       }

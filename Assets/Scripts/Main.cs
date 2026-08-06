@@ -76,9 +76,10 @@ static class Main
   )
   {
     PlaceCamera(camera);
-    using (GameStage.Create(stagePreset, stageParent))
+    using (var stage = GameStage.Create(stagePreset, stageParent))
     using (uiRoot.ChildOf(gameViewPrefab, out var gameView))
     {
+      _ = new StageController(stage);
       await gameView.WaitForGameClearActionAsync(ct);
     }
   }

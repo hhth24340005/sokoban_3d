@@ -41,23 +41,40 @@ public sealed class GameStage : IDisposable
 
   public void Dispose() => root.Dispose();
 
+  public bool InBounds(int x, int y, int z) =>
+    0 <= x && x < size.x &&
+    0 <= y && y < size.y &&
+    0 <= z && z < size.z;
+
   public IReadOnlyList<T> Get<T>(int x, int y, int z) where T : IStageObject
   {
-    if (
-      x < 0 || size.x <= x ||
-      y < 0 || size.y <= y ||
-      z < 0 || size.z <= z
-    )
+    if (!InBounds(x, y, z))
     {
       throw new ArgumentOutOfRangeException();
     }
-    return cells[ToIndex(x, y, z)]
-        .Select(it => it.GetComponent<IStageObjectView>())
-        .NotNull()
-        .Select(ToModel)
-        .OfType<T>()
-        .ToImmutableList();
+    return CellToModels(cells[ToIndex(x, y, z)], new Vector3Int(x, y, z))
+      .OfType<T>()
+      .ToImmutableList();
   }
+
+  public IReadOnlyList<T> GetAll<T>() where T : IStageObject
+  {
+    var result = new List<T>();
+    for (var index = 0; index < cells.Count; index++)
+    {
+      var (x, y, z) = FromIndex(index, size);
+      result.AddRange(
+        CellToModels(cells[index], new Vector3Int(x, y, z)).OfType<T>()
+      );
+    }
+    return result.ToImmutableList();
+  }
+
+  private IEnumerable<IStageObject> CellToModels(List<GameObject> cell, Vector3Int position) =>
+    cell
+      .Select(it => it.GetComponent<IStageObjectView>())
+      .NotNull()
+      .Select(view => ToModel(view, position));
 
   private int ToIndex(int x, int y, int z) =>
     x + y * size.x + z * size.x * size.y;
@@ -65,11 +82,24 @@ public sealed class GameStage : IDisposable
   private static (int x, int y, int z) FromIndex(int index, Vector3Int size) =>
     (index % size.x, index / size.x % size.y, index / (size.x * size.y));
 
-  internal IStageObject ToModel(IStageObjectView view) => view switch
+  private void Relocate(IMovableView view, Vector3Int target)
   {
-    BoxView box => new CollidableMovableStageObjectAdapter(this, box),
-    PlayerView player => new MovableStageObjectAdapter(this, player),
-    GoalView => new GoalStageObjectAdapter(),
+    var gameObject = ((Component)view).gameObject;
+    foreach (var cell in cells)
+    {
+      if (cell.Remove(gameObject))
+      {
+        break;
+      }
+    }
+    cells[ToIndex(target.x, target.y, target.z)].Add(gameObject);
+  }
+
+  internal IStageObject ToModel(IStageObjectView view, Vector3Int position) => view switch
+  {
+    SubjectBoxView box => new SubjectBoxStageObjectAdapter(this, box, position),
+    PlayerView player => new ControllableStageObjectAdapter(this, player, position),
+    GoalView => new GoalStageObjectAdapter(position),
     _ => throw new NotSupportedException(
       $"GameStage does not know how to translate {view.GetType()} into a {nameof(IStageObject)}."
     ),
@@ -80,10 +110,13 @@ public sealed class GameStage : IDisposable
     private readonly GameStage stage;
     private readonly IMovableView view;
 
-    public MovableStageObjectAdapter(GameStage stage, IMovableView view)
+    public Vector3Int Position { get; }
+
+    public MovableStageObjectAdapter(GameStage stage, IMovableView view, Vector3Int position)
     {
       this.stage = stage;
       this.view = view;
+      Position = position;
     }
 
     public async UniTask MoveTo(
@@ -94,18 +127,34 @@ public sealed class GameStage : IDisposable
       CancellationToken ct
     )
     {
+      stage.Relocate(view, new Vector3Int(x, y, z));
       await view.MoveTo(x, y, z, moveMode, ct);
-      // Set the cell state in [stage], but not implemented yet
     }
   }
 
-  private sealed class CollidableMovableStageObjectAdapter :
+  private sealed class ControllableStageObjectAdapter :
     MovableStageObjectAdapter,
-    ICollidableStageObject
+    IControllableStageObject
   {
-    public CollidableMovableStageObjectAdapter(GameStage stage, IMovableView view)
-      : base(stage, view) { }
+    public ControllableStageObjectAdapter(GameStage stage, IMovableView view, Vector3Int position)
+      : base(stage, view, position) { }
   }
 
-  private sealed class GoalStageObjectAdapter : IGoalStageObject { }
+  private sealed class SubjectBoxStageObjectAdapter :
+    MovableStageObjectAdapter,
+    ISubjectBoxStageObject
+  {
+    public SubjectBoxStageObjectAdapter(GameStage stage, IMovableView view, Vector3Int position)
+      : base(stage, view, position) { }
+  }
+
+  private sealed class GoalStageObjectAdapter : IGoalStageObject
+  {
+    public Vector3Int Position { get; }
+
+    public GoalStageObjectAdapter(Vector3Int position)
+    {
+      Position = position;
+    }
+  }
 }
