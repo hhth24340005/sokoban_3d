@@ -22,6 +22,12 @@ public sealed class StageController
       TryPlanStep(controllable, offset, moves);
     }
 
+    if (moves.Count == 0)
+    {
+      await UniTask.Yield(ct);
+      return;
+    }
+
     var animations = new List<UniTask>(moves.Count);
     foreach (var (movable, target) in moves)
     {

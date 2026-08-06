@@ -77,10 +77,28 @@ static class Main
   {
     PlaceCamera(camera);
     using (var stage = GameStage.Create(stagePreset, stageParent))
+    using (var input = new KeyboardDirectionInput())
     using (uiRoot.ChildOf(gameViewPrefab, out var gameView))
     {
-      _ = new StageController(stage);
+      var controller = new StageController(stage);
+      using var stepLoopCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+      var stepLoop = StepLoop(controller, input, stepLoopCts.Token);
       await gameView.WaitForGameClearActionAsync(ct);
+      stepLoopCts.Cancel();
+      await stepLoop.SuppressCancellationThrow();
+    }
+  }
+
+  private static async UniTask StepLoop(
+    StageController controller,
+    KeyboardDirectionInput input,
+    CancellationToken ct
+  )
+  {
+    while (true)
+    {
+      var direction = await input.NextStepDirection(ct);
+      await controller.Step(direction, ct);
     }
   }
 
