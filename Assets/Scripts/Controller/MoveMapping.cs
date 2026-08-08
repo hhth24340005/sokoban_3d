@@ -54,6 +54,27 @@ public readonly struct MoveMapping : IEquatable<MoveMapping>
     _ => throw new NotSupportedException($"Unknown screen direction {screenDirection}."),
   };
 
+  public ScreenDirection ScreenDirectionFor(Direction worldDirection)
+  {
+    if (worldDirection == Forward)
+    {
+      return ScreenDirection.Up;
+    }
+    if (worldDirection == Back)
+    {
+      return ScreenDirection.Down;
+    }
+    if (worldDirection == Left)
+    {
+      return ScreenDirection.Left;
+    }
+    if (worldDirection == Right)
+    {
+      return ScreenDirection.Right;
+    }
+    throw new NotSupportedException($"No screen direction maps to {worldDirection}.");
+  }
+
   public bool Equals(MoveMapping other) =>
     Forward == other.Forward &&
     Right == other.Right &&

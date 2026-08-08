@@ -13,17 +13,26 @@ public sealed class GameStage : IDisposable
   private readonly List<List<GameObject>> cells;
   private readonly ScopedGameObject root;
 
-  private GameStage(Vector3Int size, List<List<GameObject>> cells, ScopedGameObject root)
+  private GameStage(
+    Vector3Int size,
+    List<List<GameObject>> cells,
+    ScopedGameObject root,
+    MoveGuideView moveGuide
+  )
   {
     this.size = size;
     this.cells = cells;
     this.root = root;
+    MoveGuide = moveGuide;
   }
+
+  public MoveGuideView MoveGuide { get; }
 
   public static GameStage Create(GameStagePreset preset, GameObject parent)
   {
     var root = parent.ChildOf(nameof(GameStage));
     var cells = new List<List<GameObject>>(preset.Cells.Count);
+    MoveGuideView moveGuide = null;
     for (var index = 0; index < preset.Cells.Count; index++)
     {
       var (x, y, z) = FromIndex(index, preset.Size);
@@ -31,14 +40,19 @@ public sealed class GameStage : IDisposable
       foreach (var prefab in preset.Cells[index].GameObjects)
       {
         var spawned = root.GameObject.ChildOf(prefab).GameObject;
-        spawned.GetComponent<IStageObjectView>()?.TeleportTo(x, y, z);
+        var view = spawned.GetComponent<IStageObjectView>();
+        view?.TeleportTo(x, y, z);
+        if (view is PlayerView playerView)
+        {
+          moveGuide = playerView.MoveGuide;
+        }
         cell.Add(spawned);
       }
       cells.Add(cell);
     }
     CreateFloor(preset, root);
     CreateWalls(preset, root);
-    return new GameStage(preset.Size, cells, root);
+    return new GameStage(preset.Size, cells, root, moveGuide);
   }
 
   private static void CreateFloor(GameStagePreset preset, ScopedGameObject root)

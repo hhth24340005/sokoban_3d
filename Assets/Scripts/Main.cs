@@ -78,6 +78,7 @@ static class Main
   {
     using (var stage = GameStage.Create(stagePreset, stageParent))
     using (var cameraRig = new StageCameraRig(camera, stagePreset.Center, cameraSettings))
+    using (var moveGuide = CreateMoveGuideController(stage, cameraRig))
     using (var input = new KeyboardDirectionInput())
     using (uiRoot.ChildOf(gameViewPrefab, out var gameView))
     {
@@ -93,6 +94,14 @@ static class Main
       );
     }
   }
+
+  private static MoveGuideController CreateMoveGuideController(
+    GameStage stage,
+    StageCameraRig cameraRig
+  ) =>
+    stage.MoveGuide is MoveGuideView view
+      ? new MoveGuideController(view, cameraRig)
+      : null;
 
   private static async UniTask StepLoop(
     StageController controller,

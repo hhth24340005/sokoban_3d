@@ -51,6 +51,8 @@ public sealed class StageCameraRig : IDisposable
 
   public MoveMapping CurrentMapping => MoveMapping.FromYawDegrees(state.YawDegrees);
 
+  public Quaternion Rotation => state.Rotation;
+
   public bool IsDragging => dragButton.IsPressed() && !IsPointerOverUI();
 
   private async UniTaskVoid UpdateLoop(CancellationToken ct)

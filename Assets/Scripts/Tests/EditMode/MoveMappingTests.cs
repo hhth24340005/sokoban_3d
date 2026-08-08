@@ -43,4 +43,39 @@ public class MoveMappingTests
     Assert.AreNotEqual(a, b);
     Assert.IsTrue(a != b);
   }
+
+  [TestCase(0f, Direction.Forward, ScreenDirection.Up)]
+  [TestCase(0f, Direction.Right, ScreenDirection.Right)]
+  [TestCase(0f, Direction.Back, ScreenDirection.Down)]
+  [TestCase(0f, Direction.Left, ScreenDirection.Left)]
+  [TestCase(90f, Direction.Right, ScreenDirection.Up)]
+  [TestCase(90f, Direction.Back, ScreenDirection.Right)]
+  [TestCase(90f, Direction.Left, ScreenDirection.Down)]
+  [TestCase(90f, Direction.Forward, ScreenDirection.Left)]
+  public void ScreenDirectionForIsTheInverseOfToWorld(
+    float yawDegrees,
+    Direction worldDirection,
+    ScreenDirection expected
+  )
+  {
+    var mapping = MoveMapping.FromYawDegrees(yawDegrees);
+    Assert.AreEqual(expected, mapping.ScreenDirectionFor(worldDirection));
+  }
+
+  [Test]
+  public void ScreenDirectionForRoundTripsWithToWorld()
+  {
+    var mapping = MoveMapping.FromYawDegrees(135f);
+    foreach (var screenDirection in new[]
+    {
+      ScreenDirection.Up,
+      ScreenDirection.Down,
+      ScreenDirection.Left,
+      ScreenDirection.Right,
+    })
+    {
+      var worldDirection = mapping.ToWorld(screenDirection);
+      Assert.AreEqual(screenDirection, mapping.ScreenDirectionFor(worldDirection));
+    }
+  }
 }
