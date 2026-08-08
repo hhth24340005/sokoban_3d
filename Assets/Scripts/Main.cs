@@ -82,7 +82,7 @@ static class Main
     {
       var controller = new StageController(stage);
       using var gameplayCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-      var stepLoop = StepLoop(controller, input, gameplayCts.Token).Preserve();
+      var stepLoop = StepLoop(controller, input, gameView, gameplayCts.Token).Preserve();
       var debugClear = gameView.WaitForGameClearActionAsync(gameplayCts.Token).Preserve();
       await UniTask.WhenAny(stepLoop, debugClear);
       gameplayCts.Cancel();
@@ -96,14 +96,61 @@ static class Main
   private static async UniTask StepLoop(
     StageController controller,
     KeyboardDirectionInput input,
+    GameView gameView,
     CancellationToken ct
   )
   {
+    gameView.SetHistoryState(controller.CanUndo, controller.CanRedo);
     while (!controller.IsCleared())
     {
-      var direction = await input.NextStepDirection(ct);
-      await controller.Step(direction, ct);
+      switch (await NextAction(input, gameView, ct))
+      {
+        case GameAction.Move move:
+          await controller.Step(move.Direction, ct);
+          break;
+        case GameAction.Undo:
+          await controller.Undo(ct);
+          break;
+        case GameAction.Redo:
+          await controller.Redo(ct);
+          break;
+      }
+      gameView.SetHistoryState(controller.CanUndo, controller.CanRedo);
     }
+  }
+
+  private static async UniTask<GameAction> NextAction(
+    KeyboardDirectionInput input,
+    GameView gameView,
+    CancellationToken ct
+  )
+  {
+    var move = MoveAction(input, ct);
+    var undo = UndoAction(gameView, ct);
+    var redo = RedoAction(gameView, ct);
+    (_, var action) = await UniTask.WhenAny<GameAction>(move, undo, redo);
+    return action;
+  }
+
+  private static async UniTask<GameAction> MoveAction(
+    KeyboardDirectionInput input,
+    CancellationToken ct
+  )
+  {
+    var direction = await input.NextStepDirection(ct);
+    return new GameAction.Move(direction);
+  }
+
+  private static async UniTask<GameAction> UndoAction(GameView gameView, CancellationToken ct)
+  {
+    await gameView.WaitForUndoActionAsync(ct);
+    return new GameAction.Undo();
+  }
+
+  private static async UniTask<GameAction> RedoAction(GameView gameView, CancellationToken ct)
+  {
+    await gameView.WaitForRedoActionAsync(ct);
+    return new GameAction.Redo();
   }
 
   private static void PlaceCamera(Camera camera)

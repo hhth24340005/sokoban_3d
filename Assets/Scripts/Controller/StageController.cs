@@ -8,11 +8,17 @@ using UnityEngine;
 public sealed class StageController
 {
   private readonly GameStage stage;
+  private readonly Stack<List<Move>> undoStack = new();
+  private readonly Stack<List<Move>> redoStack = new();
 
   public StageController(GameStage stage)
   {
     this.stage = stage;
   }
+
+  public bool CanUndo => undoStack.Count > 0;
+
+  public bool CanRedo => redoStack.Count > 0;
 
   public bool IsCleared() =>
     stage
@@ -29,7 +35,7 @@ public sealed class StageController
   public async UniTask Step(Direction direction, CancellationToken ct)
   {
     var offset = ToOffset(direction);
-    var moves = new List<(IMovableStageObject movable, Vector3Int target)>();
+    var moves = new List<Move>();
     foreach (var controllable in stage.GetAll<IControllableStageObject>())
     {
       TryPlanStep(controllable, offset, moves);
@@ -41,18 +47,55 @@ public sealed class StageController
       return;
     }
 
-    var animations = new List<UniTask>(moves.Count);
-    foreach (var (movable, target) in moves)
-    {
-      animations.Add(movable.MoveTo(target.x, target.y, target.z, MoveMode.Slide, ct));
-    }
-    await UniTask.WhenAll(animations);
+    await Apply(moves, ct);
+    undoStack.Push(moves);
+    redoStack.Clear();
   }
+
+  public async UniTask Undo(CancellationToken ct)
+  {
+    if (undoStack.Count == 0)
+    {
+      await UniTask.Yield(ct);
+      return;
+    }
+
+    var moves = undoStack.Pop();
+    await ApplyReverse(moves, ct);
+    redoStack.Push(moves);
+  }
+
+  public async UniTask Redo(CancellationToken ct)
+  {
+    if (redoStack.Count == 0)
+    {
+      await UniTask.Yield(ct);
+      return;
+    }
+
+    var moves = redoStack.Pop();
+    await Apply(moves, ct);
+    undoStack.Push(moves);
+  }
+
+  private static UniTask Apply(List<Move> moves, CancellationToken ct) =>
+    UniTask.WhenAll(
+      moves.Select(move =>
+        move.Subject.MoveTo(move.To.x, move.To.y, move.To.z, move.Mode, ct)
+      )
+    );
+
+  private static UniTask ApplyReverse(List<Move> moves, CancellationToken ct) =>
+    UniTask.WhenAll(
+      moves.Select(move =>
+        move.Subject.MoveTo(move.From.x, move.From.y, move.From.z, move.Mode, ct)
+      )
+    );
 
   private void TryPlanStep(
     IControllableStageObject controllable,
     Vector3Int offset,
-    List<(IMovableStageObject movable, Vector3Int target)> moves
+    List<Move> moves
   )
   {
     var target = controllable.Position + offset;
@@ -64,7 +107,7 @@ public sealed class StageController
     var obstacles = stage.Get<ICollidableStageObject>(target.x, target.y, target.z);
     if (obstacles.Count == 0)
     {
-      moves.Add((controllable, target));
+      moves.Add(new Move(controllable, controllable.Position, target, MoveMode.Slide));
       return;
     }
 
@@ -90,9 +133,9 @@ public sealed class StageController
 
     foreach (var movable in pushed)
     {
-      moves.Add((movable, beyond));
+      moves.Add(new Move(movable, movable.Position, beyond, MoveMode.Slide));
     }
-    moves.Add((controllable, target));
+    moves.Add(new Move(controllable, controllable.Position, target, MoveMode.Slide));
   }
 
   private static Vector3Int ToOffset(Direction direction) => direction switch
@@ -105,4 +148,20 @@ public sealed class StageController
     Direction.Back => Vector3Int.back,
     _ => throw new NotSupportedException($"Unknown direction {direction}."),
   };
+
+  private readonly struct Move
+  {
+    public IMovableStageObject Subject { get; }
+    public Vector3Int From { get; }
+    public Vector3Int To { get; }
+    public MoveMode Mode { get; }
+
+    public Move(IMovableStageObject subject, Vector3Int from, Vector3Int to, MoveMode mode)
+    {
+      Subject = subject;
+      From = from;
+      To = to;
+      Mode = mode;
+    }
+  }
 }
