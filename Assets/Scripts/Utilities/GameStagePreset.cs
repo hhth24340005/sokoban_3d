@@ -21,6 +21,12 @@ public sealed class GameStagePreset : ScriptableObject
 
   public Vector3Int Size => size;
 
+  public Vector3 Center => new(
+    (size.x - 1) / 2f,
+    (size.y - 1) / 2f,
+    (size.z - 1) / 2f
+  );
+
   public IReadOnlyList<Cell> Cells => cells;
 
   public GameObject? FloorPrefab => floorPrefab;

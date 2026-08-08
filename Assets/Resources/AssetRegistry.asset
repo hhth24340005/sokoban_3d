@@ -16,4 +16,6 @@ MonoBehaviour:
   titleView: {fileID: 1542432845705521159, guid: ca5c4d99cb4094620a657ee0d8c2f434, type: 3}
   gameView: {fileID: 2428248757518579982, guid: 165814a5c29234daba629f84ead85649, type: 3}
   gameStagePresets:
+  - {fileID: 11400000, guid: dc3c87d89f444c56abedf7acd987a923, type: 2}
   - {fileID: 11400000, guid: f3b105f8f35d54834aa443dde3b5818a, type: 2}
+  cameraSettings: {fileID: 11400000, guid: c476153976054413bb648a3f4b582aa8, type: 2}

@@ -16,6 +16,9 @@ public sealed class AssetRegistry : ScriptableObject
   [SerializeField]
   private GameStagePreset[] gameStagePresets = { };
 
+  [SerializeField]
+  private CameraSettings cameraSettings;
+
   public SystemRoot SystemRoot => systemRoot;
 
   public TitleView TitleView => titleView;
@@ -23,4 +26,6 @@ public sealed class AssetRegistry : ScriptableObject
   public GameView GameView => gameView;
 
   public IReadOnlyList<GameStagePreset> GameStagePresets => gameStagePresets;
+
+  public CameraSettings CameraSettings => cameraSettings;
 }

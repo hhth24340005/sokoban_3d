@@ -13,10 +13,9 @@ static class Main
   )
   {
     using (rootObject.ChildOf(assets.SystemRoot, out var systemRoot))
-    using (systemRoot.gameObject.ChildOf("Sun").With<Light>(out var sun))
     {
-      sun.type = LightType.Directional;
-      sun.transform.rotation = Quaternion.Euler(50f, -30f, 0f);
+      RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
+      RenderSettings.ambientLight = new Color(1f, 1f, 1f);
 
       while (true)
       {
@@ -40,6 +39,7 @@ static class Main
         await Game(
           assets.GameView,
           assets.GameStagePresets[stage],
+          assets.CameraSettings,
           systemRoot.gameObject,
           systemRoot.MainCamera,
           systemRoot.UIRoot.gameObject,
@@ -69,20 +69,21 @@ static class Main
   private static async UniTask Game(
     GameView gameViewPrefab,
     GameStagePreset stagePreset,
+    CameraSettings cameraSettings,
     GameObject stageParent,
     Camera camera,
     GameObject uiRoot,
     CancellationToken ct
   )
   {
-    PlaceCamera(camera);
     using (var stage = GameStage.Create(stagePreset, stageParent))
+    using (var cameraRig = new StageCameraRig(camera, stagePreset.Center, cameraSettings))
     using (var input = new KeyboardDirectionInput())
     using (uiRoot.ChildOf(gameViewPrefab, out var gameView))
     {
       var controller = new StageController(stage);
       using var gameplayCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-      var stepLoop = StepLoop(controller, input, gameView, gameplayCts.Token).Preserve();
+      var stepLoop = StepLoop(controller, input, cameraRig, gameView, gameplayCts.Token).Preserve();
       var debugClear = gameView.WaitForGameClearActionAsync(gameplayCts.Token).Preserve();
       await UniTask.WhenAny(stepLoop, debugClear);
       gameplayCts.Cancel();
@@ -96,6 +97,7 @@ static class Main
   private static async UniTask StepLoop(
     StageController controller,
     KeyboardDirectionInput input,
+    StageCameraRig cameraRig,
     GameView gameView,
     CancellationToken ct
   )
@@ -103,7 +105,7 @@ static class Main
     gameView.SetHistoryState(controller.CanUndo, controller.CanRedo);
     while (!controller.IsCleared())
     {
-      switch (await NextAction(input, gameView, ct))
+      switch (await NextAction(input, cameraRig, gameView, ct))
       {
         case GameAction.Move move:
           await controller.Step(move.Direction, ct);
@@ -121,11 +123,12 @@ static class Main
 
   private static async UniTask<GameAction> NextAction(
     KeyboardDirectionInput input,
+    StageCameraRig cameraRig,
     GameView gameView,
     CancellationToken ct
   )
   {
-    var move = MoveAction(input, ct);
+    var move = MoveAction(input, cameraRig, ct);
     var undo = UndoAction(gameView, ct);
     var redo = RedoAction(gameView, ct);
     (_, var action) = await UniTask.WhenAny<GameAction>(move, undo, redo);
@@ -134,10 +137,12 @@ static class Main
 
   private static async UniTask<GameAction> MoveAction(
     KeyboardDirectionInput input,
+    StageCameraRig cameraRig,
     CancellationToken ct
   )
   {
-    var direction = await input.NextStepDirection(ct);
+    var screenDirection = await input.NextStepDirection(ct);
+    var direction = cameraRig.CurrentMapping.ToWorld(screenDirection);
     return new GameAction.Move(direction);
   }
 
@@ -151,12 +156,6 @@ static class Main
   {
     await gameView.WaitForRedoActionAsync(ct);
     return new GameAction.Redo();
-  }
-
-  private static void PlaceCamera(Camera camera)
-  {
-    camera.transform.position = new Vector3(2f, 4f, -5f);
-    camera.transform.LookAt(new Vector3(2f, 0f, 2f));
   }
 
   [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]

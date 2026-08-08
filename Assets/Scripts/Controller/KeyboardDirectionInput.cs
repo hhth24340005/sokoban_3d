@@ -6,17 +6,17 @@ using UnityEngine.InputSystem;
 
 public sealed class KeyboardDirectionInput : IDisposable
 {
-  private static readonly (string binding, Direction direction)[] keyMap =
+  private static readonly (string binding, ScreenDirection direction)[] keyMap =
   {
-    ("<Keyboard>/w", Direction.Forward),
-    ("<Keyboard>/s", Direction.Back),
-    ("<Keyboard>/a", Direction.Left),
-    ("<Keyboard>/d", Direction.Right),
+    ("<Keyboard>/w", ScreenDirection.Up),
+    ("<Keyboard>/s", ScreenDirection.Down),
+    ("<Keyboard>/a", ScreenDirection.Left),
+    ("<Keyboard>/d", ScreenDirection.Right),
   };
 
   private readonly List<InputAction> actions = new();
-  private readonly List<Direction> held = new();
-  private Direction? buffered;
+  private readonly List<ScreenDirection> held = new();
+  private ScreenDirection? buffered;
   private UniTaskCompletionSource waiter;
 
   public KeyboardDirectionInput()
@@ -31,11 +31,11 @@ public sealed class KeyboardDirectionInput : IDisposable
     }
   }
 
-  public async UniTask<Direction> NextStepDirection(CancellationToken ct)
+  public async UniTask<ScreenDirection> NextStepDirection(CancellationToken ct)
   {
     while (true)
     {
-      if (buffered is Direction pressed)
+      if (buffered is ScreenDirection pressed)
       {
         buffered = null;
         return pressed;
@@ -50,7 +50,7 @@ public sealed class KeyboardDirectionInput : IDisposable
     }
   }
 
-  private void OnPressed(Direction direction)
+  private void OnPressed(ScreenDirection direction)
   {
     held.Remove(direction);
     held.Add(direction);
@@ -59,7 +59,7 @@ public sealed class KeyboardDirectionInput : IDisposable
     waiter = null;
   }
 
-  private void OnReleased(Direction direction)
+  private void OnReleased(ScreenDirection direction)
   {
     held.Remove(direction);
   }
