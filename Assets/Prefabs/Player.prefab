@@ -280,7 +280,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7033027864783262566}
-  - component: {fileID: 5120597466231377413}
   m_Layer: 0
   m_Name: MoveGuide
   m_TagString: Untagged
@@ -307,28 +306,6 @@ Transform:
   - {fileID: 7575995977657118657}
   m_Father: {fileID: 3448137153263924826}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &5120597466231377413
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1646397053497258784}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 20c85b371a2ec45e7a8dcf5ef8c00881, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Sokoban::MoveGuideView
-  forwardLabel: {fileID: 7428477984845166492}
-  rightLabel: {fileID: 8401331179832177273}
-  backLabel: {fileID: 3518941481273040869}
-  leftLabel: {fileID: 1616767082043842757}
-  forwardArrow: {fileID: 1991220421362133651}
-  rightArrow: {fileID: 4710556099248729991}
-  backArrow: {fileID: 2888281803760027808}
-  leftArrow: {fileID: 1950770760495142927}
-  visibleSeconds: 2
-  fadeOutSeconds: 0.2
 --- !u!1 &1936110905920284824
 GameObject:
   m_ObjectHideFlags: 0
@@ -943,7 +920,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3448137153263924826}
-  - component: {fileID: 6677783183049386970}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -968,20 +944,6 @@ Transform:
   - {fileID: 7033027864783262566}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &6677783183049386970
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4864211005517111285}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3ccca82fd032f47b2bda659012f1617e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerStageObject
-  moveSeconds: 0.15
-  moveGuide: {fileID: 5120597466231377413}
 --- !u!1 &6066443644044625752
 GameObject:
   m_ObjectHideFlags: 0

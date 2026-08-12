@@ -11,7 +11,18 @@ public sealed class TitleView : MonoBehaviour
   [SerializeField]
   private Button quitButton;
 
-  public async UniTask<Result> WaitForActionAsync(CancellationToken ct)
+  public async UniTask<Result> PlayAsync(
+    Transform parent,
+    CancellationToken ct
+  )
+  {
+    using (parent.CreateChild(this, out var instantiated, copyIfExisting: false))
+    {
+      return await instantiated.WaitForActionAsync(ct);
+    }
+  }
+
+  private async UniTask<Result> WaitForActionAsync(CancellationToken ct)
   {
     var start = WaitForStartAsync(ct);
     var quit = WaitForQuitAsync(ct);
@@ -22,7 +33,8 @@ public sealed class TitleView : MonoBehaviour
   private async UniTask<Result> WaitForStartAsync(CancellationToken ct)
   {
     await startButton.OnClickAsync(cancellationToken: ct);
-    return new Result.Start(0);
+    throw new System.Exception();
+    // return new Result.Start(...);
   }
 
   private async UniTask<Result> WaitForQuitAsync(CancellationToken ct)
@@ -35,7 +47,7 @@ public sealed class TitleView : MonoBehaviour
   {
     private Result() { }
 
-    public sealed record Start(int NextStage) : Result;
+    public sealed record Start(GameStagePreset Stage) : Result;
 
     public sealed record QuitGame : Result;
   }
