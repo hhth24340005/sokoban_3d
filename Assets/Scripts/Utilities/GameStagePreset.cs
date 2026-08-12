@@ -1,5 +1,3 @@
-#nullable enable
-
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -14,10 +12,11 @@ public sealed class GameStagePreset : ScriptableObject
   private Cell[] cells = { };
 
   [SerializeField]
-  private GameObject? floorPrefab;
+  private GameObject floorPrefab;
 
   [SerializeField]
-  private GameObject? wallPrefab;
+  private GameObject wallPrefab;
+
 
   public Vector3Int Size => size;
 
@@ -29,9 +28,11 @@ public sealed class GameStagePreset : ScriptableObject
 
   public IReadOnlyList<Cell> Cells => cells;
 
-  public GameObject? FloorPrefab => floorPrefab;
 
-  public GameObject? WallPrefab => wallPrefab;
+  public GameObject FloorPrefab => floorPrefab;
+
+  public GameObject WallPrefab => wallPrefab;
+
 }
 
 [Serializable]
