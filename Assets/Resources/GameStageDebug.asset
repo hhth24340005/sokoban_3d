@@ -98,3 +98,4 @@ MonoBehaviour:
     - {fileID: 7785695311329507604, guid: c45991e3ca4f14e078a6ca7d3fee6ce4, type: 3}
   floorPrefab: {fileID: 3449819701990008521, guid: d3f45393e2c5a4dfa808caef045764fd, type: 3}
   wallPrefab: {fileID: 1498595862586674187, guid: fd236ca8cae084696b0b6207bd01f025, type: 3}
+  stageCameraPrefab: {fileID: 7554876856681007308, guid: a78c65e70d2b74f9ea610707b934ca70, type: 3}

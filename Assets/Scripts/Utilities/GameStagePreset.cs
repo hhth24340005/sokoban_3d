@@ -17,6 +17,8 @@ public sealed class GameStagePreset : ScriptableObject
   [SerializeField]
   private GameObject wallPrefab;
 
+  [SerializeField]
+  private StageCamera stageCameraPrefab;
 
   public Vector3Int Size => size;
 
@@ -33,6 +35,7 @@ public sealed class GameStagePreset : ScriptableObject
 
   public GameObject WallPrefab => wallPrefab;
 
+  public StageCamera StageCameraPrefab => stageCameraPrefab;
 }
 
 [Serializable]
