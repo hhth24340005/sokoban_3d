@@ -44,11 +44,6 @@ public struct Cell
 
   public Cell(IReadOnlyCollection<GameObject> gameObjects)
   {
-    var copied = new List<GameObject>(gameObjects.Count);
-    foreach (var gameObject in gameObjects)
-    {
-      copied.Add(gameObject);
-    }
-    this.gameObjects = copied;
+    this.gameObjects = new List<GameObject>(gameObjects);
   }
 }
