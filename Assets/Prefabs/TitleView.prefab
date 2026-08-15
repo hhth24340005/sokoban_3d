@@ -950,3 +950,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TitleView
   startButton: {fileID: 4976315141626396469}
   quitButton: {fileID: 3696486152490603579}
+  stages:
+  - button: {fileID: 0}
+    stage: {fileID: 11400000, guid: dc3c87d89f444c56abedf7acd987a923, type: 2}

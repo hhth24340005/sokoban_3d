@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
@@ -10,6 +13,9 @@ public sealed class TitleView : MonoBehaviour
 
   [SerializeField]
   private Button quitButton;
+
+  [SerializeField]
+  private List<StageEntry> stages;
 
   public async UniTask<Result> PlayAsync(
     Transform parent,
@@ -34,8 +40,7 @@ public sealed class TitleView : MonoBehaviour
   private async UniTask<Result> WaitForStartAsync(CancellationToken ct)
   {
     await startButton.OnClickAsync(cancellationToken: ct);
-    throw new System.Exception();
-    // return new Result.Start(...);
+    return new Result.Start(stages.First().Stage);
   }
 
   private async UniTask<Result> WaitForQuitAsync(CancellationToken ct)
@@ -51,5 +56,19 @@ public sealed class TitleView : MonoBehaviour
     public sealed record Start(GameStagePreset Stage) : Result;
 
     public sealed record QuitGame : Result;
+  }
+
+  [Serializable]
+  public struct StageEntry
+  {
+    [SerializeField]
+    private Button button;
+
+    [SerializeField]
+    private GameStagePreset stage;
+
+    public readonly Button Button => button;
+
+    public readonly GameStagePreset Stage => stage;
   }
 }
