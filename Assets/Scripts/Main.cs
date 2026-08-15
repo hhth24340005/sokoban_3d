@@ -34,6 +34,11 @@ static class Main
             throw new Exception($"Unknown {nameof(TitleView.Result)} type >.<");
         }
       }
+      await assets.GameView.PlayAsync(
+        parent: root,
+        preset: startResult.Stage,
+        ct: ct
+      );
     }
   }
 
