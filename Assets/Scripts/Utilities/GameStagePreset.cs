@@ -14,7 +14,10 @@ public sealed class GameStagePreset : ScriptableObject
   private Cell[] cells = { };
 
   [SerializeField]
-  private GameObject floorPrefab;
+  private GameObject floor0Prefab;
+
+  [SerializeField]
+  private GameObject floor1Prefab;
 
   [SerializeField]
   private GameObject wallPrefab;
@@ -47,7 +50,9 @@ public sealed class GameStagePreset : ScriptableObject
     );
   }
 
-  public GameObject FloorPrefab => floorPrefab;
+  public GameObject Floor0Prefab => floor0Prefab;
+
+  public GameObject Floor1Prefab => floor1Prefab;
 
   public GameObject WallPrefab => wallPrefab;
 
