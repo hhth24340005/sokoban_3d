@@ -4,13 +4,13 @@ using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 public sealed class GameView : MonoBehaviour
 {
-  // debug
   [SerializeField]
-  private Button gameClearButton;
+  private PauseView pauseView;
 
   [SerializeField]
   private Button undoButton;
@@ -30,7 +30,18 @@ public sealed class GameView : MonoBehaviour
       (var idToObj, var stage) = CreateStage(instantiated.transform, preset);
       var bounds = new Bounds(center: preset.Center, size: preset.Size);
       stageCamera.Orbit(bounds);
-      await instantiated.gameClearButton.OnClickAsync(ct);
+
+      using var inputAction = new PlayerInputActions();
+      var gameInput = inputAction.Game;
+      try
+      {
+        gameInput.Enable();
+        await instantiated.WaitForReturnToTitleActionAsync(gameInput, ct);
+      }
+      finally
+      {
+        gameInput.Disable();
+      }
     }
   }
 
@@ -64,5 +75,45 @@ public sealed class GameView : MonoBehaviour
     var size = preset.Size;
     var stage = new GameStage((size.x, size.y, size.z), idToPos);
     return (idToObj, stage);
+  }
+
+  private async UniTask WaitForReturnToTitleActionAsync(
+    PlayerInputActions.GameActions inputAction,
+    CancellationToken ct
+  )
+  {
+    while (!ct.IsCancellationRequested)
+    {
+      await WaitForPauseActionAsync(inputAction, ct);
+      var pauseResult = await pauseView.ShowAndWaitForAction(inputAction, ct);
+      switch (pauseResult)
+      {
+        case PauseView.Result.Resume:
+          continue;
+        case PauseView.Result.ReturnToTitle:
+          return;
+        default:
+          throw new System.Exception($"Unknown {typeof(PauseView.Result)} type >.<");
+      }
+    }
+  }
+
+  private static async UniTask WaitForPauseActionAsync(
+    PlayerInputActions.GameActions inputAction,
+    CancellationToken ct
+  )
+  {
+    var tcs = new UniTaskCompletionSource();
+    using var _ = ct.Register(() => tcs.TrySetCanceled());
+    void OnPerform(InputAction.CallbackContext ctx) => tcs.TrySetResult();
+    inputAction.Pause.performed += OnPerform;
+    try
+    {
+      await tcs.Task;
+    }
+    finally
+    {
+      inputAction.Pause.performed -= OnPerform;
+    }
   }
 }
