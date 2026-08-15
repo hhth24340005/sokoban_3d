@@ -18,3 +18,4 @@ MonoBehaviour:
   - {fileID: 11400000, guid: dc3c87d89f444c56abedf7acd987a923, type: 2}
   - {fileID: 11400000, guid: f3b105f8f35d54834aa443dde3b5818a, type: 2}
   cameraSettings: {fileID: 11400000, guid: c476153976054413bb648a3f4b582aa8, type: 2}
+  defaultPreferences: {fileID: 11400000, guid: ecce9b675d0c943b0b3341f4a04b8216, type: 2}

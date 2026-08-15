@@ -13,6 +13,7 @@ public sealed class TitleView : MonoBehaviour
 
   public async UniTask<Result> PlayAsync(
     Transform parent,
+    Preferences pref,
     CancellationToken ct
   )
   {

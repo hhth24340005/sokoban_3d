@@ -15,12 +15,14 @@ static class Main
     RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
     RenderSettings.ambientLight = new Color(0.7f, 0.7f, 0.7f);
 
+    var preferences = Preferences.Of(assets.DefaultPreferences);
     while (!ct.IsCancellationRequested)
     {
       var titleResult =
         await assets.TitleView.PlayAsync(
           parent: root,
-          ct
+          pref: preferences,
+          ct: ct
         );
       if (titleResult is not TitleView.Result.Start startResult)
       {

@@ -13,9 +13,14 @@ public sealed class AssetRegistry : ScriptableObject
   [SerializeField]
   private GameStagePreset[] gameStagePresets = { };
 
+  [SerializeField]
+  private DefaultPreferences defaultPreferences;
+
   public TitleView TitleView => titleView;
 
   public GameView GameView => gameView;
 
+
   public IReadOnlyList<GameStagePreset> GameStagePresets => gameStagePresets;
+  public DefaultPreferences DefaultPreferences => defaultPreferences;
 }
