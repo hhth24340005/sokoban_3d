@@ -20,11 +20,13 @@ public sealed class TitleView : MonoBehaviour
   public async UniTask<Result> PlayAsync(
     Transform parent,
     Preferences pref,
+    Func<CancellationToken, UniTask> fadeIn,
     CancellationToken ct
   )
   {
     using (parent.CreateChild(this, out var instantiated, copyIfExisting: false))
     {
+      await fadeIn(ct);
       return await instantiated.WaitForActionAsync(ct);
     }
   }

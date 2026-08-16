@@ -4,6 +4,9 @@ using UnityEngine;
 public sealed class AssetRegistry : ScriptableObject
 {
   [SerializeField]
+  private TransitionView applicationEnterTransition;
+
+  [SerializeField]
   private TitleView titleView;
 
   [SerializeField]
@@ -11,6 +14,10 @@ public sealed class AssetRegistry : ScriptableObject
 
   [SerializeField]
   private DefaultPreferences defaultPreferences;
+
+  // ===
+
+  public TransitionView ApplicationEnterTransition => applicationEnterTransition;
 
   public TitleView TitleView => titleView;
 

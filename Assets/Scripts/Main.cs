@@ -16,11 +16,14 @@ static class Main
     RenderSettings.ambientLight = new Color(0.7f, 0.7f, 0.7f);
 
     var preferences = Preferences.Of(assets.DefaultPreferences);
+    root.CreateChild(assets.ApplicationEnterTransition, out var appEnterTransition);
+    var titleEnterFadeIn = appEnterTransition.Cover();
     while (!ct.IsCancellationRequested)
     {
       var titleResult =
         await assets.TitleView.PlayAsync(
           parent: root,
+          fadeIn: titleEnterFadeIn,
           pref: preferences,
           ct: ct
         );
@@ -39,6 +42,8 @@ static class Main
         preset: startResult.Stage,
         ct: ct
       );
+      titleEnterFadeIn = (ct) => UniTask.CompletedTask;
+
     }
   }
 
