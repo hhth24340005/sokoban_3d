@@ -20,7 +20,7 @@ static class Main
     var titleEnterFadeIn = appEnterTransition.Cover();
     while (!ct.IsCancellationRequested)
     {
-      var titleResult =
+      (var titleResult, var gameFadeIn) =
         await assets.TitleView.PlayAsync(
           parent: root,
           fadeIn: titleEnterFadeIn,
@@ -39,11 +39,11 @@ static class Main
       }
       await assets.GameView.PlayAsync(
         parent: root,
+        fadeIn: gameFadeIn,
         preset: startResult.Stage,
         ct: ct
       );
       titleEnterFadeIn = (ct) => UniTask.CompletedTask;
-
     }
   }
 

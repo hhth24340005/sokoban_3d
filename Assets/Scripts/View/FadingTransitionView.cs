@@ -58,6 +58,10 @@ public sealed class FadingTransitionView : TransitionView
 
   private async UniTask RevealAsync(CancellationToken ct)
   {
+    if (gameObject == null)
+    {
+      return;
+    }
     overlay.DOKill();
     overlay.alpha = 1f;
     overlay.blocksRaycasts = true;
@@ -69,8 +73,6 @@ public sealed class FadingTransitionView : TransitionView
       duration: fadeInSeconds
     ).SetEase(fadeInEase)
     .WithCancellation(ct);
-    overlay.alpha = 0f;
-    overlay.blocksRaycasts = false;
-    overlay.gameObject.SetActive(false);
+    Destroy(gameObject);
   }
 }

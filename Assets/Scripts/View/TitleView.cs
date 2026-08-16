@@ -17,7 +17,10 @@ public sealed class TitleView : MonoBehaviour
   [SerializeField]
   private List<StageEntry> stages;
 
-  public async UniTask<Result> PlayAsync(
+  [SerializeField]
+  private TransitionView startTransitionPrefab;
+
+  public async UniTask<(Result result, Func<CancellationToken, UniTask> fadeIn)> PlayAsync(
     Transform parent,
     Preferences pref,
     Func<CancellationToken, UniTask> fadeIn,
@@ -27,28 +30,46 @@ public sealed class TitleView : MonoBehaviour
     using (parent.CreateChild(this, out var instantiated, copyIfExisting: false))
     {
       await fadeIn(ct);
-      return await instantiated.WaitForActionAsync(ct);
+      return await instantiated.WaitForActionAsync(parent, ct);
     }
   }
 
-  private async UniTask<Result> WaitForActionAsync(CancellationToken ct)
+  private async UniTask<(Result, Func<CancellationToken, UniTask>)> WaitForActionAsync(
+    Transform parent,
+    CancellationToken ct
+  )
   {
-    var start = WaitForStartAsync(ct);
-    var quit = WaitForQuitAsync(ct);
-    (_, var ret) = await UniTask.WhenAny<Result>(start, quit);
-    return ret;
+    var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+    var tcs = new UniTaskCompletionSource<(Result, Func<CancellationToken, UniTask<Func<CancellationToken, UniTask>>>)>();
+    WaitForStart(parent, tcs, cts.Token).Forget();
+    WaitForQuitAsync(tcs, cts.Token).Forget();
+    (var ret, var fadeOut) = await tcs.Task;
+    cts.Cancel();
+    var fadeIn = await fadeOut(ct);
+    return (ret, fadeIn);
   }
 
-  private async UniTask<Result> WaitForStartAsync(CancellationToken ct)
+  private async UniTask WaitForStart(
+    Transform parent,
+    UniTaskCompletionSource<(Result, Func<CancellationToken, UniTask<Func<CancellationToken, UniTask>>>)> tcs,
+    CancellationToken ct
+  )
   {
     await startButton.OnClickAsync(cancellationToken: ct);
-    return new Result.Start(stages.First().Stage);
+    parent.CreateChild(startTransitionPrefab, out var transition);
+    tcs.TrySetResult((new Result.Start(stages.First().Stage), transition.CoverAsync));
   }
 
-  private async UniTask<Result> WaitForQuitAsync(CancellationToken ct)
+  private async UniTask WaitForQuitAsync(
+    UniTaskCompletionSource<(Result, Func<CancellationToken, UniTask<Func<CancellationToken, UniTask>>>)> tcs,
+    CancellationToken ct
+  )
   {
     await quitButton.OnClickAsync(cancellationToken: ct);
-    return new Result.QuitGame();
+    tcs.TrySetResult((
+      new Result.QuitGame(),
+      (_) => UniTask.FromResult<Func<CancellationToken, UniTask>>((_) => UniTask.CompletedTask)
+    ));
   }
 
   public abstract record Result

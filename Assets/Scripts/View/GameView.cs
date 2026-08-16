@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -20,6 +21,7 @@ public sealed class GameView : MonoBehaviour
 
   public async UniTask PlayAsync(
     Transform parent,
+    Func<CancellationToken, UniTask> fadeIn,
     GameStagePreset preset,
     CancellationToken ct
   )
@@ -36,6 +38,7 @@ public sealed class GameView : MonoBehaviour
       try
       {
         gameInput.Enable();
+        await fadeIn(ct);
         await instantiated.WaitForReturnToTitleActionAsync(gameInput, ct);
       }
       finally
