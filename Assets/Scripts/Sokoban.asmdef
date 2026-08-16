@@ -3,6 +3,8 @@
     "rootNamespace": "",
     "references": [
         "UniTask",
+        "DOTween",
+        "UniTask.DOTween",
         "Unity.VisualScripting.Core",
         "UnityEngine.UI",
         "Unity.InputSystem",

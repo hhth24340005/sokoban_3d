@@ -1103,6 +1103,7 @@ GameObject:
   - component: {fileID: 4387399249606685364}
   - component: {fileID: 7874853542663930657}
   - component: {fileID: 2382850864858663480}
+  - component: {fileID: 8248537271650104055}
   m_Layer: 0
   m_Name: ResumeButton
   m_TagString: Untagged
@@ -1212,6 +1213,22 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &8248537271650104055
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5874692135399942510}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa27f9d0b50ce4490b886f62cb18961b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Sokoban::PauseViewButtonAnimator
+  parent: {fileID: 5837450664006134480}
+  text: {fileID: 6656246951244234828}
+  scaleMultiplier: 1.1
+  hoverColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
 --- !u!1 &6845329360983928760
 GameObject:
   m_ObjectHideFlags: 0
@@ -1367,6 +1384,7 @@ GameObject:
   - component: {fileID: 504627129070031118}
   - component: {fileID: 2818743752120985218}
   - component: {fileID: 2006893640967761846}
+  - component: {fileID: 3052777683973359054}
   m_Layer: 0
   m_Name: ReturnToTitleButton
   m_TagString: Untagged
@@ -1476,6 +1494,22 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &3052777683973359054
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8226748536067385322}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa27f9d0b50ce4490b886f62cb18961b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Sokoban::PauseViewButtonAnimator
+  parent: {fileID: 5837450664006134480}
+  text: {fileID: 6374567884933333350}
+  scaleMultiplier: 1.1
+  hoverColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
 --- !u!1 &9012565349435431097
 GameObject:
   m_ObjectHideFlags: 0
