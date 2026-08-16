@@ -873,6 +873,7 @@ GameObject:
   - component: {fileID: 7913604279419132164}
   - component: {fileID: 14809295138214851}
   - component: {fileID: 5813904681747965532}
+  - component: {fileID: 885701379571113136}
   m_Layer: 0
   m_Name: PausePanel
   m_TagString: Untagged
@@ -950,8 +951,23 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 850205754c2a540b9a5ece78cc8aa07b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Sokoban::PauseView
+  overlay: {fileID: 885701379571113136}
+  fadeInSeconds: 0.1
+  fadeOutSeconds: 0.2
   resumeButton: {fileID: 2382850864858663480}
   returnToTitleButton: {fileID: 2006893640967761846}
+--- !u!225 &885701379571113136
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3998440481268293647}
+  m_Enabled: 1
+  m_Alpha: 0
+  m_Interactable: 0
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1 &4396108338778369396
 GameObject:
   m_ObjectHideFlags: 0
@@ -1028,7 +1044,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4281479730
+    rgba: 4291611852
   m_fontColor: {r: 0.8, g: 0.8, b: 0.8, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -1128,7 +1144,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 400, y: -150}
+  m_AnchoredPosition: {x: 400, y: -150.32397}
   m_SizeDelta: {x: 160, y: 30}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &4387399249606685364
@@ -1229,6 +1245,7 @@ MonoBehaviour:
   text: {fileID: 6656246951244234828}
   scaleMultiplier: 1.1
   hoverColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  animationSeconds: 0.1
 --- !u!1 &6845329360983928760
 GameObject:
   m_ObjectHideFlags: 0
@@ -1409,7 +1426,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 400, y: -450}
+  m_AnchoredPosition: {x: 400, y: -450.97192}
   m_SizeDelta: {x: 160, y: 30}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &504627129070031118
@@ -1510,6 +1527,7 @@ MonoBehaviour:
   text: {fileID: 6374567884933333350}
   scaleMultiplier: 1.1
   hoverColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  animationSeconds: 0.1
 --- !u!1 &9012565349435431097
 GameObject:
   m_ObjectHideFlags: 0
@@ -1584,7 +1602,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4281479730
+    rgba: 4291611852
   m_fontColor: {r: 0.8, g: 0.8, b: 0.8, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3

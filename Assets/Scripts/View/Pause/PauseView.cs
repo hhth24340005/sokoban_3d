@@ -1,11 +1,22 @@
+using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 public sealed class PauseView : MonoBehaviour
 {
+  [SerializeField]
+  private CanvasGroup overlay;
+
+  [SerializeField]
+  private float fadeInSeconds = 0.1f;
+
+  [SerializeField]
+  private float fadeOutSeconds = 0.2f;
+
   [SerializeField]
   private Button resumeButton;
 
@@ -24,20 +35,65 @@ public sealed class PauseView : MonoBehaviour
       gameInput.Disable();
       uiInput.Enable();
       gameObject.SetActive(true);
-      var resumeTask = WaitForResumeAction(uiInput, ct);
-      var returnTask = WaitForReturnToTitleAction(ct);
-      (_, var ret) = await UniTask.WhenAny<Result>(resumeTask, returnTask);
+
+      await DOTween.To(
+        getter: () => overlay.alpha,
+        setter: x => overlay.alpha = x,
+        endValue: 1f,
+        duration: fadeInSeconds
+      ).WithCancellation(ct);
+      overlay.interactable = true;
+
+      var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+      var tcs = new UniTaskCompletionSource<Func<CancellationToken, UniTask<Result>>>();
+
+      WaitForResumeAction(uiInput, tcs, cts.Token).Forget();
+      WaitForReturnToTitleAction(tcs, ct).Forget();
+      var anim = await tcs.Task;
+      cts.Cancel();
+      overlay.interactable = false;
+      var ret = await anim(ct);
+
       return ret;
     }
     finally
     {
+      overlay.interactable = false;
       gameObject.SetActive(false);
       uiInput.Disable();
       gameInput.Enable();
     }
   }
 
-  private async UniTask<Result> WaitForResumeAction(
+  private async UniTask WaitForResumeAction(
+    PlayerInputActions.UIActions inputAction,
+    UniTaskCompletionSource<Func<CancellationToken, UniTask<Result>>> tcs,
+    CancellationToken ct
+  )
+  {
+    var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+    var buttonTask = resumeButton.OnClickAsync(ct);
+    var cancelInputTask = WaitForCancelInputAsync(inputAction, cts.Token);
+
+    await UniTask.WhenAny(buttonTask, cancelInputTask);
+    cts.Cancel();
+
+    tcs.TrySetResult(
+      async (ct) =>
+      {
+        await DOTween.To(
+          getter: () => overlay.alpha,
+          setter: x => overlay.alpha = x,
+          endValue: 0f,
+          duration: fadeOutSeconds
+        ).WithCancellation(ct);
+
+        return new Result.Resume();
+      }
+    );
+  }
+
+  private async UniTask WaitForCancelInputAsync(
     PlayerInputActions.UIActions inputAction,
     CancellationToken ct
   )
@@ -46,22 +102,24 @@ public sealed class PauseView : MonoBehaviour
     var tcs = new UniTaskCompletionSource();
     void OnPerform(InputAction.CallbackContext ctx) => tcs.TrySetResult();
     using var _ = ct.Register(() => tcs.TrySetCanceled(ct));
-    inputAction.Cancel.performed += OnPerform;
     try
     {
-      await UniTask.WhenAny(buttonTask, tcs.Task);
+      inputAction.Cancel.performed += OnPerform;
+      await tcs.Task;
     }
     finally
     {
       inputAction.Cancel.performed -= OnPerform;
     }
-    return new Result.Resume();
   }
 
-  private async UniTask<Result> WaitForReturnToTitleAction(CancellationToken ct)
+  private async UniTask WaitForReturnToTitleAction(
+    UniTaskCompletionSource<Func<CancellationToken, UniTask<Result>>> tcs,
+    CancellationToken ct
+  )
   {
     await returnToTitleButton.OnClickAsync(ct);
-    return new Result.ReturnToTitle();
+    tcs.TrySetResult((ct) => UniTask.FromResult((Result)new Result.ReturnToTitle()));
   }
 
   public abstract record Result
