@@ -4,7 +4,6 @@ using Cysharp.Threading.Tasks;
 using DG.Tweening;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.UI;
 
 public sealed class PauseView : MonoBehaviour
 {
@@ -18,10 +17,7 @@ public sealed class PauseView : MonoBehaviour
   private float fadeOutSeconds = 0.2f;
 
   [SerializeField]
-  private Button resumeButton;
-
-  [SerializeField]
-  private Button returnToTitleButton;
+  private PauseViewButtonGroup buttonGroup;
 
   public async UniTask<Result> ShowAndWaitForAction(
     PlayerInputActions.GameActions gameInput,
@@ -43,6 +39,7 @@ public sealed class PauseView : MonoBehaviour
         duration: fadeInSeconds
       ).WithCancellation(ct);
       overlay.interactable = true;
+      await buttonGroup.FadeInAsync(ct);
 
       var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
       var tcs = new UniTaskCompletionSource<Func<CancellationToken, UniTask<Result>>>();
@@ -72,7 +69,7 @@ public sealed class PauseView : MonoBehaviour
   )
   {
     var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-    var buttonTask = resumeButton.OnClickAsync(ct);
+    var buttonTask = buttonGroup.WaitForResumeButtonClickAsync(ct);
     var cancelInputTask = WaitForCancelInputAsync(inputAction, cts.Token);
 
     await UniTask.WhenAny(buttonTask, cancelInputTask);
@@ -81,6 +78,8 @@ public sealed class PauseView : MonoBehaviour
     tcs.TrySetResult(
       async (ct) =>
       {
+        await buttonGroup.FadeOutAsync(ct);
+
         await DOTween.To(
           getter: () => overlay.alpha,
           setter: x => overlay.alpha = x,
@@ -98,7 +97,7 @@ public sealed class PauseView : MonoBehaviour
     CancellationToken ct
   )
   {
-    var buttonTask = resumeButton.OnClickAsync(ct);
+    var buttonTask = buttonGroup.WaitForResumeButtonClickAsync(ct);
     var tcs = new UniTaskCompletionSource();
     void OnPerform(InputAction.CallbackContext ctx) => tcs.TrySetResult();
     using var _ = ct.Register(() => tcs.TrySetCanceled(ct));
@@ -118,7 +117,7 @@ public sealed class PauseView : MonoBehaviour
     CancellationToken ct
   )
   {
-    await returnToTitleButton.OnClickAsync(ct);
+    await buttonGroup.WaitForReturnButtonClickAsync(ct);
     tcs.TrySetResult((ct) => UniTask.FromResult((Result)new Result.ReturnToTitle()));
   }
 
