@@ -26,6 +26,7 @@ public sealed class PauseView : MonoBehaviour
   {
     using var inputActions = new PlayerInputActions();
     var uiInput = inputActions.UI;
+    bool resume = true;
     try
     {
       gameInput.Disable();
@@ -50,15 +51,23 @@ public sealed class PauseView : MonoBehaviour
       cts.Cancel();
       overlay.interactable = false;
       var ret = await anim(ct);
+      resume = ret switch
+      {
+        Result.ReturnToTitle => false,
+        _ => true,
+      };
 
       return ret;
     }
     finally
     {
       overlay.interactable = false;
-      gameObject.SetActive(false);
       uiInput.Disable();
-      gameInput.Enable();
+      if (resume)
+      {
+        gameObject.SetActive(false);
+        gameInput.Enable();
+      }
     }
   }
 

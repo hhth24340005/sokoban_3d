@@ -14,12 +14,15 @@ public sealed class GameView : MonoBehaviour
   private PauseView pauseView;
 
   [SerializeField]
+  private TransitionView returnTransitionPrefab;
+
+  [SerializeField]
   private Button undoButton;
 
   [SerializeField]
   private Button redoButton;
 
-  public async UniTask PlayAsync(
+  public async UniTask<Func<CancellationToken, UniTask>> PlayAsync(
     Transform parent,
     Func<CancellationToken, UniTask> fadeIn,
     GameStagePreset preset,
@@ -39,7 +42,7 @@ public sealed class GameView : MonoBehaviour
       {
         gameInput.Enable();
         await fadeIn(ct);
-        await instantiated.WaitForReturnToTitleActionAsync(gameInput, ct);
+        return await instantiated.WaitForReturnToTitleActionAsync(parent, gameInput, ct);
       }
       finally
       {
@@ -80,13 +83,15 @@ public sealed class GameView : MonoBehaviour
     return (idToObj, stage);
   }
 
-  private async UniTask WaitForReturnToTitleActionAsync(
+  private async UniTask<Func<CancellationToken, UniTask>> WaitForReturnToTitleActionAsync(
+    Transform parent,
     PlayerInputActions.GameActions inputAction,
     CancellationToken ct
   )
   {
-    while (!ct.IsCancellationRequested)
+    while (true)
     {
+      ct.ThrowIfCancellationRequested();
       await WaitForPauseActionAsync(inputAction, ct);
       var pauseResult = await pauseView.ShowAndWaitForAction(inputAction, ct);
       switch (pauseResult)
@@ -94,9 +99,10 @@ public sealed class GameView : MonoBehaviour
         case PauseView.Result.Resume:
           continue;
         case PauseView.Result.ReturnToTitle:
-          return;
+          parent.CreateChild(returnTransitionPrefab, out var transition);
+          return await transition.CoverAsync(ct);
         default:
-          throw new System.Exception($"Unknown {typeof(PauseView.Result)} type >.<");
+          throw new Exception($"Unknown {typeof(PauseView.Result)} type >.<");
       }
     }
   }

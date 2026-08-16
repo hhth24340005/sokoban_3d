@@ -37,13 +37,13 @@ static class Main
             throw new Exception($"Unknown {nameof(TitleView.Result)} type >.<");
         }
       }
-      await assets.GameView.PlayAsync(
-        parent: root,
-        fadeIn: gameFadeIn,
-        preset: startResult.Stage,
-        ct: ct
-      );
-      titleEnterFadeIn = (ct) => UniTask.CompletedTask;
+      titleEnterFadeIn =
+        await assets.GameView.PlayAsync(
+          parent: root,
+          fadeIn: gameFadeIn,
+          preset: startResult.Stage,
+          ct: ct
+        );
     }
   }
 
