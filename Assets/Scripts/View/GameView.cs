@@ -57,6 +57,7 @@ public sealed class GameView : MonoBehaviour
           var returnTask = instantiated.WaitForReturnToTitleActionAsync(parent, gameInput, cts.Token);
           var clearTask =
             instantiated.WaitForStageCompletionAsync(
+              parent,
               gameInput.MovePlayerForward,
               gameInput.MovePlayerRight,
               gameInput.MovePlayerBackward,
@@ -65,8 +66,12 @@ public sealed class GameView : MonoBehaviour
               (id) => idToObj[id],
               cts.Token
             );
-          (_, var ret) = await UniTask.WhenAny<Func<CancellationToken, UniTask>>(returnTask, clearTask);
-          return ret;
+          (_, var anim) =
+            await UniTask.WhenAny<Func<CancellationToken, UniTask<Func<CancellationToken, UniTask>>>>(
+              returnTask,
+              clearTask
+            );
+          return await anim(ct);
         }
         finally
         {
@@ -150,7 +155,8 @@ public sealed class GameView : MonoBehaviour
     }
   }
 
-  private async UniTask<Func<CancellationToken, UniTask>> WaitForStageCompletionAsync(
+  private async UniTask<Func<CancellationToken, UniTask<Func<CancellationToken, UniTask>>>> WaitForStageCompletionAsync(
+    Transform transitionParent,
     InputAction moveForward,
     InputAction moveRight,
     InputAction moveBackward,
@@ -181,6 +187,11 @@ public sealed class GameView : MonoBehaviour
           return idToObj(mv.Who).MoveTo(new(x, y, z), ct);
         });
         await UniTask.WhenAll(animations);
+      }
+      if (stage.IsCleared)
+      {
+        transitionParent.CreateChild(returnTransitionPrefab, out var transition);
+        return async (ct) => await transition.CoverAsync(ct);
       }
     }
   }
@@ -232,7 +243,7 @@ public sealed class GameView : MonoBehaviour
     }
   }
 
-  private async UniTask<Func<CancellationToken, UniTask>> WaitForReturnToTitleActionAsync(
+  private async UniTask<Func<CancellationToken, UniTask<Func<CancellationToken, UniTask>>>> WaitForReturnToTitleActionAsync(
     Transform parent,
     PlayerInputActions.GameActions inputAction,
     CancellationToken ct
@@ -249,7 +260,7 @@ public sealed class GameView : MonoBehaviour
           continue;
         case PauseView.Result.ReturnToTitle:
           parent.CreateChild(returnTransitionPrefab, out var transition);
-          return await transition.CoverAsync(ct);
+          return async (ct) => await transition.CoverAsync(ct);
         default:
           throw new Exception($"Unknown {typeof(PauseView.Result)} type >.<");
       }

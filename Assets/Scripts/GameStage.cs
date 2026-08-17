@@ -10,6 +10,23 @@ public sealed class GameStage
   private readonly List<Entity> sortedEntities;
   private readonly ISet<(TypeId, Rule)> rules;
 
+  public bool IsCleared
+  {
+    get
+    {
+      var goals = ListEntitiesWithRule(Rule.Goal).ToImmutableList();
+      if (goals.Count == 0)
+      {
+        return false;
+      }
+      return goals.All(goal =>
+      {
+        TryGetCellAt(goal.CurrentPos, out var cell);
+        return cell.Any(it => it.HasRule(Rule.Key));
+      });
+    }
+  }
+
   public GameStage(
     (int x, int y, int z) size,
     IReadOnlyDictionary<EntityId, (TypeId, Position)> entityData,
@@ -159,6 +176,8 @@ public sealed class GameStage
     Controllable,
     Pushable,
     Gravitational,
+    Key,
+    Goal,
   }
 
   private bool TryGetCellAt(Position pos, out IEnumerable<Entity> cell)
