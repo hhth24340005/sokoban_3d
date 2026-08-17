@@ -96,7 +96,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Sokoban::StageCamera
   camera: {fileID: 1154041252267154737}
-  distanceMultiplier: 1
+  distanceMultiplier: 0.9
   initialPitchFactor: 0.5
   pitchLimitDegrees:
     a: 15
