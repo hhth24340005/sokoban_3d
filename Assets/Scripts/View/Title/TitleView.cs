@@ -12,15 +12,12 @@ public sealed class TitleView : MonoBehaviour
   private Button startButton;
 
   [SerializeField]
-  private Button quitButton;
-
-  [SerializeField]
   private List<StageEntry> stages;
 
   [SerializeField]
   private TransitionView startTransitionPrefab;
 
-  public async UniTask<(Result result, Func<CancellationToken, UniTask> fadeIn)> PlayAsync(
+  public async UniTask<(GameStagePreset result, Func<CancellationToken, UniTask> fadeIn)> PlayAsync(
     Transform parent,
     Preferences pref,
     Func<CancellationToken, UniTask> fadeIn,
@@ -34,15 +31,14 @@ public sealed class TitleView : MonoBehaviour
     }
   }
 
-  private async UniTask<(Result, Func<CancellationToken, UniTask>)> WaitForActionAsync(
+  private async UniTask<(GameStagePreset, Func<CancellationToken, UniTask>)> WaitForActionAsync(
     Transform parent,
     CancellationToken ct
   )
   {
     var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-    var tcs = new UniTaskCompletionSource<(Result, Func<CancellationToken, UniTask<Func<CancellationToken, UniTask>>>)>();
+    var tcs = new UniTaskCompletionSource<(GameStagePreset, Func<CancellationToken, UniTask<Func<CancellationToken, UniTask>>>)>();
     WaitForStart(parent, tcs, cts.Token).Forget();
-    WaitForQuitAsync(tcs, cts.Token).Forget();
     (var ret, var fadeOut) = await tcs.Task;
     cts.Cancel();
     var fadeIn = await fadeOut(ct);
@@ -51,34 +47,13 @@ public sealed class TitleView : MonoBehaviour
 
   private async UniTask WaitForStart(
     Transform parent,
-    UniTaskCompletionSource<(Result, Func<CancellationToken, UniTask<Func<CancellationToken, UniTask>>>)> tcs,
+    UniTaskCompletionSource<(GameStagePreset, Func<CancellationToken, UniTask<Func<CancellationToken, UniTask>>>)> tcs,
     CancellationToken ct
   )
   {
     await startButton.OnClickAsync(cancellationToken: ct);
     parent.CreateChild(startTransitionPrefab, out var transition);
-    tcs.TrySetResult((new Result.Start(stages.First().Stage), transition.CoverAsync));
-  }
-
-  private async UniTask WaitForQuitAsync(
-    UniTaskCompletionSource<(Result, Func<CancellationToken, UniTask<Func<CancellationToken, UniTask>>>)> tcs,
-    CancellationToken ct
-  )
-  {
-    await quitButton.OnClickAsync(cancellationToken: ct);
-    tcs.TrySetResult((
-      new Result.QuitGame(),
-      (_) => UniTask.FromResult<Func<CancellationToken, UniTask>>((_) => UniTask.CompletedTask)
-    ));
-  }
-
-  public abstract record Result
-  {
-    private Result() { }
-
-    public sealed record Start(GameStagePreset Stage) : Result;
-
-    public sealed record QuitGame : Result;
+    tcs.TrySetResult((stages.First().Stage, transition.CoverAsync));
   }
 
   [Serializable]

@@ -18,30 +18,21 @@ static class Main
     var preferences = Preferences.Of(assets.DefaultPreferences);
     root.CreateChild(assets.ApplicationEnterTransition, out var appEnterTransition);
     var titleEnterFadeIn = appEnterTransition.Cover();
-    while (!ct.IsCancellationRequested)
+    while (true)
     {
-      (var titleResult, var gameFadeIn) =
+      ct.ThrowIfCancellationRequested();
+      (var stage, var gameFadeIn) =
         await assets.TitleView.PlayAsync(
           parent: root,
           fadeIn: titleEnterFadeIn,
           pref: preferences,
           ct: ct
         );
-      if (titleResult is not TitleView.Result.Start startResult)
-      {
-        switch (titleResult)
-        {
-          case TitleView.Result.QuitGame:
-            return;
-          default:
-            throw new Exception($"Unknown {nameof(TitleView.Result)} type >.<");
-        }
-      }
       titleEnterFadeIn =
         await assets.GameView.PlayAsync(
           parent: root,
           fadeIn: gameFadeIn,
-          preset: startResult.Stage,
+          preset: stage,
           ct: ct
         );
     }
@@ -68,9 +59,10 @@ static class Main
     }
     finally
     {
-      Application.Quit();
 #if UNITY_EDITOR
       UnityEditor.EditorApplication.isPlaying = false;
+#else
+      Application.Quit();
 #endif
     }
   }
