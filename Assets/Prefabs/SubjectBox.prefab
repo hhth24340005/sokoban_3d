@@ -136,6 +136,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Sokoban::StageObject
   rules: 020000000300000004000000
-  animationSeconds: 0.15
+  animationSeconds: 0.2
+  rewindDurationMultiplier: 0.5
   gravityAcceleration: 9.8
   ease: 6
+  easeRewind: 5

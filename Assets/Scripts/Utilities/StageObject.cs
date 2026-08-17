@@ -12,10 +12,10 @@ public class StageObject : MonoBehaviour
   private List<GameStage.Rule> rules = new();
 
   [SerializeField]
-  private float animationSeconds = 0.15f;
+  private float animationSeconds = 0.2f;
 
   [SerializeField]
-  private float rewindDurationMultiplier = 0.25f;
+  private float rewindDurationMultiplier = 0.5f;
 
   [SerializeField]
   private float gravityAcceleration = 9.8f;
