@@ -33,12 +33,12 @@ public sealed class GameStagePreset : ScriptableObject
     (size.z - 1) / 2f
   );
 
-  public IReadOnlyDictionary<GameObject, IReadOnlyList<GameStage.Position>> GetGameObjectPositions()
+  public IReadOnlyDictionary<StageObject, IReadOnlyList<GameStage.Position>> GetGameObjectPositions()
   {
-    var dict = new Dictionary<GameObject, List<GameStage.Position>>();
+    var dict = new Dictionary<StageObject, List<GameStage.Position>>();
     foreach (var index in Enumerable.Range(0, cells.Length))
     {
-      foreach (var obj in cells[index].GameObjects)
+      foreach (var obj in cells[index].StageObjects)
       {
         dict.TryAdd(obj, new());
         dict[obj].Add(ToPosition(index));
@@ -70,12 +70,12 @@ public sealed class GameStagePreset : ScriptableObject
 public struct Cell
 {
   [SerializeField]
-  private List<GameObject> gameObjects;
+  private List<StageObject> stageObjects;
 
-  public IReadOnlyList<GameObject> GameObjects => gameObjects;
+  public IReadOnlyList<StageObject> StageObjects => stageObjects;
 
-  public Cell(IReadOnlyCollection<GameObject> gameObjects)
+  public Cell(IReadOnlyCollection<StageObject> stageObjects)
   {
-    this.gameObjects = new List<GameObject>(gameObjects);
+    this.stageObjects = new(stageObjects);
   }
 }

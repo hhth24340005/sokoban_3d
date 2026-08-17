@@ -54,7 +54,19 @@ public sealed class GameView : MonoBehaviour
             pref: pref,
             ct: cts.Token
           ).Forget();
-          return await instantiated.WaitForReturnToTitleActionAsync(parent, gameInput, cts.Token);
+          var returnTask = instantiated.WaitForReturnToTitleActionAsync(parent, gameInput, cts.Token);
+          var clearTask =
+            instantiated.WaitForStageCompletionAsync(
+              gameInput.MovePlayerForward,
+              gameInput.MovePlayerRight,
+              gameInput.MovePlayerBackward,
+              gameInput.MovePlayerLeft,
+              stage,
+              (id) => idToObj[id],
+              cts.Token
+            );
+          (_, var ret) = await UniTask.WhenAny<Func<CancellationToken, UniTask>>(returnTask, clearTask);
+          return ret;
         }
         finally
         {
@@ -69,34 +81,44 @@ public sealed class GameView : MonoBehaviour
   }
 
   private static (
-    IReadOnlyDictionary<GameStage.EntityId, GameObject> idToObj,
+    IReadOnlyDictionary<GameStage.EntityId, StageObject> idToObj,
     GameStage stage
   ) CreateStage(Transform parent, GameStagePreset preset)
   {
     var id = 0;
     var prefabToPos = preset.GetGameObjectPositions();
-    var objToPos =
-      prefabToPos.SelectMany(kv =>
+    var typeToRules = new Dictionary<GameStage.TypeId, IReadOnlyCollection<GameStage.Rule>>();
+    var objToData =
+      prefabToPos.SelectMany((kv, type) =>
       {
         (var prefab, var positions) = kv;
+        var typeId = new GameStage.TypeId(type);
+        typeToRules.Add(typeId, prefab.Rules);
+
         return positions.Select(pos =>
         {
-          var spawned = parent.CreateChild(prefab).GameObject;
+          parent.CreateChild(prefab, out var spawned);
           spawned.transform.localPosition = new(pos.X, pos.Y, pos.Z);
-          return (spawned, pos);
+          var data = (typeId, pos);
+          return (spawned, data);
         });
-      }).ToImmutableDictionary(it => it.spawned, it => it.pos);
-    var idToObj = objToPos.ToImmutableDictionary((_) => new GameStage.EntityId(id++), it => it.Key);
-    var idToPos =
+      }).ToImmutableDictionary(it => it.spawned, it => it.data);
+    var idToObj = objToData.ToImmutableDictionary((_) => new GameStage.EntityId(id++), it => it.Key);
+    var idToData =
       idToObj.Join(
-        inner: objToPos,
+        inner: objToData,
         outerKeySelector: idToPrefab => idToPrefab.Value,
         innerKeySelector: prefabToPos => prefabToPos.Key,
         resultSelector:
           (idToPrefab, prefabToPos) => new { idToPrefab.Key, prefabToPos.Value }
-      ).ToDictionary(it => it.Key, it => it.Value);
+      ).ToImmutableDictionary(it => it.Key, it => it.Value);
     var size = preset.Size;
-    var stage = new GameStage((size.x, size.y, size.z), idToPos);
+    var stage =
+      new GameStage(
+        (size.x, size.y, size.z),
+        idToData,
+        typeToRules.ToImmutableDictionary()
+      );
     return (idToObj, stage);
   }
 
@@ -125,6 +147,77 @@ public sealed class GameView : MonoBehaviour
     finally
     {
       mouseDelta.performed -= OnPerform;
+    }
+  }
+
+  private async UniTask<Func<CancellationToken, UniTask>> WaitForStageCompletionAsync(
+    InputAction moveForward,
+    InputAction moveRight,
+    InputAction moveBackward,
+    InputAction moveLeft,
+    GameStage stage,
+    Func<GameStage.EntityId, StageObject> idToObj,
+    CancellationToken ct
+  )
+  {
+    while (true)
+    {
+      ct.ThrowIfCancellationRequested();
+      var movements =
+        await MovePlayerForInputAsync(moveForward, moveRight, moveBackward, moveLeft, stage, ct);
+      var animations = movements.Select(mv =>
+      {
+        (var x, var y, var z) = mv.To;
+        return idToObj(mv.Who).MoveTo(new(x, y, z), ct);
+      });
+      await UniTask.WhenAll(animations);
+    }
+  }
+
+  private async UniTask<IEnumerable<GameStage.Movement>> MovePlayerForInputAsync(
+    InputAction moveForward,
+    InputAction moveRight,
+    InputAction moveBackward,
+    InputAction moveLeft,
+    GameStage stage,
+    CancellationToken ct
+  )
+  {
+    var direction =
+      await WaitForPlayerMoveInputAsync(moveForward, moveRight, moveBackward, moveLeft, ct);
+    return stage.MovePlayers(direction);
+  }
+
+  private async UniTask<GameStage.Direction> WaitForPlayerMoveInputAsync(
+    InputAction moveForward,
+    InputAction moveRight,
+    InputAction moveBackward,
+    InputAction moveLeft,
+    CancellationToken ct
+  )
+  {
+    var tcs = new UniTaskCompletionSource<GameStage.Direction>();
+    using var _ = ct.Register(() => tcs.TrySetCanceled());
+    Action<InputAction.CallbackContext> CallbackOf(GameStage.Direction direction) =>
+      (ctx) => tcs.TrySetResult(direction);
+    var forwardCb = CallbackOf(GameStage.Direction.PlusZ);
+    var rightCb = CallbackOf(GameStage.Direction.PlusX);
+    var backwardCb = CallbackOf(GameStage.Direction.MinusZ);
+    var leftCb = CallbackOf(GameStage.Direction.MinusX);
+    try
+    {
+      moveForward.performed += forwardCb;
+      moveRight.performed += rightCb;
+      moveBackward.performed += backwardCb;
+      moveLeft.performed += leftCb;
+      return await tcs.Task;
+    }
+    finally
+    {
+      moveForward.performed -= forwardCb;
+      moveRight.performed -= rightCb;
+      moveBackward.performed -= backwardCb;
+      moveLeft.performed -= leftCb;
     }
   }
 
