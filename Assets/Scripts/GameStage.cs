@@ -58,14 +58,20 @@ public sealed class GameStage
             pushTargetCell.All(it => !it.HasRule(Rule.Stop) && !it.HasRule(Rule.Pushable))
           )
           {
-            var ret = new List<(Entity, Position, Position)>
+            var playerTargetUpPos = playerTargetPos with { Y = playerTargetPos.Y + 1 };
+            if (
+              !TryGetCellAt(playerTargetUpPos, out var playerTargetUpCell) ||
+              playerTargetUpCell.All(it => !it.HasRule(Rule.Gravitational))
+            )
             {
-              (player, player.CurrentPos, playerTargetPos)
-            };
-            ret.AddRange(pushables.Select(it => (it, playerTargetPos, pushTargetPos)));
-            return ret;
+              var ret = new List<(Entity, Position, Position)>
+              {
+                (player, player.CurrentPos, playerTargetPos)
+              };
+              ret.AddRange(pushables.Select(it => (it, playerTargetPos, pushTargetPos)));
+              return ret;
+            }
           }
-          return Enumerable.Empty<(Entity, Position, Position)>();
         }
         return Enumerable.Empty<(Entity, Position, Position)>();
       }).ToImmutableList()
