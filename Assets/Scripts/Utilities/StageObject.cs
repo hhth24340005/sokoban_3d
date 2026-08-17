@@ -15,19 +15,51 @@ public class StageObject : MonoBehaviour
   private float animationSeconds = 0.15f;
 
   [SerializeField]
+  private float gravityAcceleration = 9.8f;
+
+  [SerializeField]
   private Ease ease = Ease.OutQuad;
 
   public IReadOnlyCollection<GameStage.Rule> Rules => rules.Distinct().ToImmutableList();
 
   public async UniTask MoveTo(Vector3 target, CancellationToken ct)
   {
+    transform.DOKill();
     try
     {
-      await transform.DOLocalMove(
-        endValue: target,
+      var x = transform.DOLocalMoveX(
+        endValue: target.x,
         duration: animationSeconds
       ).SetEase(ease)
       .WithCancellation(ct);
+
+      UniTask y;
+      if (target.y < transform.localPosition.y)
+      {
+        var fallDistance = transform.localPosition.y - target.y;
+        var fallDuration = Mathf.Sqrt(2 * fallDistance / gravityAcceleration);
+        y = transform.DOLocalMoveY(
+          endValue: target.y,
+          duration: fallDuration
+        ).SetEase(Ease.InQuad)
+        .WithCancellation(ct);
+      }
+      else
+      {
+        y = transform.DOLocalMoveY(
+          endValue: target.y,
+          duration: animationSeconds
+        ).SetEase(ease)
+        .WithCancellation(ct);
+      }
+
+      var z = transform.DOLocalMoveZ(
+        endValue: target.z,
+        duration: animationSeconds
+      ).SetEase(ease)
+      .WithCancellation(ct);
+
+      await UniTask.WhenAll(x, y, z);
     }
     finally
     {

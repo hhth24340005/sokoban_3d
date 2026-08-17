@@ -76,6 +76,37 @@ public sealed class GameStage
         return new Movement(entity.Id, from, to);
       }).ToImmutableList();
 
+  public IEnumerable<Movement> FallGravitationals() =>
+  ListEntitiesWithRule(Rule.Gravitational)
+    .Select(entity =>
+    {
+      var fallTo = entity.CurrentPos;
+      while (true)
+      {
+        var candidate = fallTo with { Y = fallTo.Y - 1 };
+        if (
+          TryGetCellAt(candidate, out var cell) &&
+          cell.All(it => !it.HasRule(Rule.Stop) && !it.HasRule(Rule.Pushable))
+        )
+        {
+          fallTo = candidate;
+        }
+        else
+        {
+          break;
+        }
+      }
+      return (entity, fallTo);
+    }).ToImmutableList()
+    .Select(mv =>
+    {
+      var originalPos = mv.entity.CurrentPos;
+      mv.entity.MoveToOrThrow(mv.fallTo);
+      return new Movement(mv.entity.Id, originalPos, mv.fallTo);
+    })
+    .Where(it => it.From != it.To)
+    .ToImmutableList();
+
   public sealed record Movement(
     EntityId Who,
     Position From,
@@ -121,6 +152,7 @@ public sealed class GameStage
     Stop,
     Controllable,
     Pushable,
+    Gravitational,
   }
 
   private bool TryGetCellAt(Position pos, out IEnumerable<Entity> cell)
@@ -172,6 +204,10 @@ public sealed class GameStage
       if (outer.IsOutOfBounds(target))
       {
         throw new InvalidOperationException();
+      }
+      if (CurrentPos == target)
+      {
+        return;
       }
       CurrentPos = target;
       outer.sortedEntities.Sort();

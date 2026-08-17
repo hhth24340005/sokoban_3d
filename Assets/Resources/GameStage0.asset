@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 367cb0af7830547fe959169ee26d636e, type: 3}
   m_Name: GameStage0
   m_EditorClassIdentifier: Assembly-CSharp::GameStage
-  size: {x: 5, y: 1, z: 5}
+  size: {x: 5, y: 3, z: 4}
   cells:
   - stageObjects: []
   - stageObjects: []
@@ -24,8 +24,12 @@ MonoBehaviour:
   - stageObjects: []
   - stageObjects: []
   - stageObjects: []
-  - stageObjects:
-    - {fileID: 5038035011909425574, guid: 6fac8f009a2f14e19bfd30a85e66f94d, type: 3}
+  - stageObjects: []
+  - stageObjects: []
+  - stageObjects: []
+  - stageObjects: []
+  - stageObjects: []
+  - stageObjects: []
   - stageObjects:
     - {fileID: 6469214695562418017, guid: c45991e3ca4f14e078a6ca7d3fee6ce4, type: 3}
   - stageObjects: []
@@ -38,6 +42,42 @@ MonoBehaviour:
   - stageObjects: []
   - stageObjects: []
   - stageObjects: []
+  - stageObjects: []
+  - stageObjects: []
+  - stageObjects: []
+  - stageObjects: []
+  - stageObjects: []
+  - stageObjects: []
+  - stageObjects: []
+  - stageObjects: []
+  - stageObjects: []
+  - stageObjects: []
+  - stageObjects: []
+  - stageObjects: []
+  - stageObjects: []
+  - stageObjects: []
+  - stageObjects: []
+  - stageObjects: []
+  - stageObjects: []
+  - stageObjects: []
+  - stageObjects: []
+  - stageObjects:
+    - {fileID: 6469214695562418017, guid: c45991e3ca4f14e078a6ca7d3fee6ce4, type: 3}
+  - stageObjects:
+    - {fileID: 6469214695562418017, guid: c45991e3ca4f14e078a6ca7d3fee6ce4, type: 3}
+  - stageObjects:
+    - {fileID: 6469214695562418017, guid: c45991e3ca4f14e078a6ca7d3fee6ce4, type: 3}
+  - stageObjects: []
+  - stageObjects: []
+  - stageObjects:
+    - {fileID: 6469214695562418017, guid: c45991e3ca4f14e078a6ca7d3fee6ce4, type: 3}
+  - stageObjects: []
+  - stageObjects:
+    - {fileID: 6469214695562418017, guid: c45991e3ca4f14e078a6ca7d3fee6ce4, type: 3}
+  - stageObjects: []
+  - stageObjects: []
+  - stageObjects:
+    - {fileID: 5038035011909425574, guid: 6fac8f009a2f14e19bfd30a85e66f94d, type: 3}
   - stageObjects: []
   - stageObjects: []
   - stageObjects: []

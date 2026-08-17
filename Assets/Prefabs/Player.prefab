@@ -136,8 +136,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 549de14ccb38f41a086987a3d02e55e7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Sokoban::StageObject
-  rules: 0100000002000000
+  rules: 0100000003000000
   animationSeconds: 0.15
+  gravityAcceleration: 9.8
   ease: 6
 --- !u!1 &7009393290076247232
 GameObject:

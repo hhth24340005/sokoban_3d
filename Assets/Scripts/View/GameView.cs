@@ -163,14 +163,25 @@ public sealed class GameView : MonoBehaviour
     while (true)
     {
       ct.ThrowIfCancellationRequested();
-      var movements =
-        await MovePlayerForInputAsync(moveForward, moveRight, moveBackward, moveLeft, stage, ct);
-      var animations = movements.Select(mv =>
       {
-        (var x, var y, var z) = mv.To;
-        return idToObj(mv.Who).MoveTo(new(x, y, z), ct);
-      });
-      await UniTask.WhenAll(animations);
+        var movements =
+          await MovePlayerForInputAsync(moveForward, moveRight, moveBackward, moveLeft, stage, ct);
+        var animations = movements.Select(mv =>
+        {
+          (var x, var y, var z) = mv.To;
+          return idToObj(mv.Who).MoveTo(new(x, y, z), ct);
+        });
+        await UniTask.WhenAll(animations);
+      }
+      {
+        var falls = stage.FallGravitationals();
+        var animations = falls.Select(mv =>
+        {
+          (var x, var y, var z) = mv.To;
+          return idToObj(mv.Who).MoveTo(new(x, y, z), ct);
+        });
+        await UniTask.WhenAll(animations);
+      }
     }
   }
 

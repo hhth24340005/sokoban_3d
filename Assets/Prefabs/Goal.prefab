@@ -137,4 +137,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: Sokoban::StageObject
   rules: 
   animationSeconds: 0.15
+  gravityAcceleration: 9.8
   ease: 6
