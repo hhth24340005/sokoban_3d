@@ -28,29 +28,40 @@ public sealed class PauseViewButtonGroup : MonoBehaviour
 
   public async UniTask FadeInAsync(CancellationToken ct)
   {
-    originalPosition ??= transform.localPosition;
-    transform.localPosition -= positionOffset;
-    var moveTask =
-      transform.DOLocalMove(
-        endValue: (Vector3)originalPosition,
-        duration: fadeInSeconds
-      ).SetEase(Ease.OutQuad)
-      .WithCancellation(ct);
-    var fadeInTask =
-      DOTween.To(
-        getter: () => group.alpha,
-        setter: x => group.alpha = x,
-        endValue: 1f,
-        duration: fadeInSeconds
-      ).SetEase(Ease.InOutQuad)
-      .WithCancellation(ct);
-    await UniTask.WhenAll(moveTask, fadeInTask);
-    group.interactable = true;
+    try
+    {
+      group.interactable = false;
+      group.blocksRaycasts = false;
+
+      originalPosition ??= transform.localPosition;
+      transform.localPosition -= positionOffset;
+      var moveTask =
+        transform.DOLocalMove(
+          endValue: (Vector3)originalPosition,
+          duration: fadeInSeconds
+        ).SetEase(Ease.OutQuad)
+        .WithCancellation(ct);
+      var fadeInTask =
+        DOTween.To(
+          getter: () => group.alpha,
+          setter: x => group.alpha = x,
+          endValue: 1f,
+          duration: fadeInSeconds
+        ).SetEase(Ease.InOutQuad)
+        .WithCancellation(ct);
+      await UniTask.WhenAll(moveTask, fadeInTask);
+    }
+    finally
+    {
+      group.interactable = true;
+      group.blocksRaycasts = true;
+    }
   }
 
   public async UniTask FadeOutAsync(CancellationToken ct)
   {
     group.interactable = false;
+    group.blocksRaycasts = false;
     originalPosition ??= transform.localPosition;
     var moveTask =
       transform.DOLocalMove(
