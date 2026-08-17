@@ -9,6 +9,8 @@ public sealed class GameStage
   private readonly (int x, int y, int z) size;
   private readonly List<Entity> sortedEntities;
   private readonly ISet<(TypeId, Rule)> rules;
+  private readonly Stack<IEnumerable<IEnumerable<(Entity who, Position from, Position to)>>> moveHistory = new();
+  private readonly Stack<IEnumerable<IEnumerable<(Entity who, Position from, Position to)>>> undoHistory = new();
 
   public bool IsCleared
   {
@@ -26,6 +28,10 @@ public sealed class GameStage
       });
     }
   }
+
+  public bool CanUndo => 0 < moveHistory.Count;
+
+  public bool CanRedo => 0 < undoHistory.Count;
 
   public GameStage(
     (int x, int y, int z) size,
@@ -47,88 +53,97 @@ public sealed class GameStage
         .ToHashSet();
   }
 
-  public IEnumerable<Movement> MovePlayers(Direction direction) =>
-    ListEntitiesWithRule(Rule.Controllable)
-      .SelectMany(player =>
-      {
-        var playerTargetPos = PositionOffset(player.CurrentPos, direction);
-        if (TryGetCellAt(playerTargetPos, out var playerTargetCell))
+  public IEnumerable<IEnumerable<Movement>> MovePlayers(Direction direction)
+  {
+    var ret =
+      new List<IEnumerable<(Entity, Position, Position)>> {
+        ListEntitiesWithRule(Rule.Controllable)
+        .SelectMany(player =>
         {
-          if (playerTargetCell.Any(it => it.HasRule(Rule.Stop)))
+          var playerTargetPos = PositionOffset(player.CurrentPos, direction);
+          if (TryGetCellAt(playerTargetPos, out var playerTargetCell))
           {
-            return Enumerable.Empty<(Entity, Position, Position)>();
-          }
-          var pushables =
-            playerTargetCell
-              .Where(it => it.HasRule(Rule.Pushable))
-              .ToImmutableList();
-          if (pushables.IsEmpty)
-          {
-            return new List<(Entity, Position, Position)>
+            if (playerTargetCell.Any(it => it.HasRule(Rule.Stop)))
             {
-              (player, player.CurrentPos, playerTargetPos)
-            };
-          }
-          var pushTargetPos = PositionOffset(playerTargetPos, direction);
-          if (
-            TryGetCellAt(pushTargetPos, out var pushTargetCell) &&
-            pushTargetCell.All(it => !it.HasRule(Rule.Stop) && !it.HasRule(Rule.Pushable))
-          )
-          {
-            var playerTargetUpPos = playerTargetPos with { Y = playerTargetPos.Y + 1 };
-            if (
-              !TryGetCellAt(playerTargetUpPos, out var playerTargetUpCell) ||
-              playerTargetUpCell.All(it => !it.HasRule(Rule.Gravitational))
-            )
+              return Enumerable.Empty<(Entity, Position, Position)>();
+            }
+            var pushables =
+              playerTargetCell
+                .Where(it => it.HasRule(Rule.Pushable))
+                .ToImmutableList();
+            if (pushables.IsEmpty)
             {
-              var ret = new List<(Entity, Position, Position)>
+              return new List<(Entity, Position, Position)>
               {
                 (player, player.CurrentPos, playerTargetPos)
               };
-              ret.AddRange(pushables.Select(it => (it, playerTargetPos, pushTargetPos)));
-              return ret;
+            }
+            var pushTargetPos = PositionOffset(playerTargetPos, direction);
+            if (
+              TryGetCellAt(pushTargetPos, out var pushTargetCell) &&
+              pushTargetCell.All(it => !it.HasRule(Rule.Stop) && !it.HasRule(Rule.Pushable))
+            )
+            {
+              var playerTargetUpPos = playerTargetPos with { Y = playerTargetPos.Y + 1 };
+              if (
+                !TryGetCellAt(playerTargetUpPos, out var playerTargetUpCell) ||
+                playerTargetUpCell.All(it => !it.HasRule(Rule.Gravitational))
+              )
+              {
+                var ret = new List<(Entity, Position, Position)>
+                {
+                  (player, player.CurrentPos, playerTargetPos)
+                };
+                ret.AddRange(pushables.Select(it => (it, playerTargetPos, pushTargetPos)));
+                return ret;
+              }
             }
           }
-        }
-        return Enumerable.Empty<(Entity, Position, Position)>();
-      }).ToImmutableList()
-      .Select(it =>
-      {
-        (var entity, var from, var to) = it;
-        entity.MoveToOrThrow(to);
-        return new Movement(entity.Id, from, to);
-      }).ToImmutableList();
+          return Enumerable.Empty<(Entity, Position, Position)>();
+        }).ToImmutableList()
+        .Select(it =>
+        {
+          it.Item1.MoveToOrThrow(it.Item3);
+          return it;
+        }).ToImmutableList(),
+        FallGravitationals(),
+      }.ToImmutableList();
+    moveHistory.Push(ret);
+    undoHistory.Clear();
+    return ret.Select(turn => turn.Select(mv => new Movement(mv.Item1.Id, mv.Item2, mv.Item3)));
+  }
 
-  public IEnumerable<Movement> FallGravitationals() =>
-  ListEntitiesWithRule(Rule.Gravitational)
-    .Select(entity =>
+  public IEnumerable<IEnumerable<Movement>> Undo()
+  {
+    if (!CanUndo)
     {
-      var fallTo = entity.CurrentPos;
-      while (true)
-      {
-        var candidate = fallTo with { Y = fallTo.Y - 1 };
-        if (
-          TryGetCellAt(candidate, out var cell) &&
-          cell.All(it => !it.HasRule(Rule.Stop) && !it.HasRule(Rule.Pushable))
-        )
-        {
-          fallTo = candidate;
-        }
-        else
-        {
-          break;
-        }
-      }
-      return (entity, fallTo);
-    }).ToImmutableList()
-    .Select(mv =>
+      return Enumerable.Empty<IEnumerable<Movement>>();
+    }
+    var undoing = moveHistory.Pop();
+    undoHistory.Push(undoing);
+    return undoing.Select(movements => movements.Select(mv =>
     {
-      var originalPos = mv.entity.CurrentPos;
-      mv.entity.MoveToOrThrow(mv.fallTo);
-      return new Movement(mv.entity.Id, originalPos, mv.fallTo);
-    })
-    .Where(it => it.From != it.To)
-    .ToImmutableList();
+      (var entity, var from, var to) = mv;
+      entity.MoveToOrThrow(from);
+      return new Movement(entity.Id, from, to);
+    }));
+  }
+
+  public IEnumerable<IEnumerable<Movement>> Redo()
+  {
+    if (!CanRedo)
+    {
+      return Enumerable.Empty<IEnumerable<Movement>>();
+    }
+    var redoing = undoHistory.Pop();
+    moveHistory.Push(redoing);
+    return redoing.Select(movements => movements.Select(mv =>
+    {
+      (var entity, var from, var to) = mv;
+      entity.MoveToOrThrow(to);
+      return new Movement(entity.Id, from, to);
+    }));
+  }
 
   public sealed record Movement(
     EntityId Who,
@@ -179,6 +194,38 @@ public sealed class GameStage
     Key,
     Goal,
   }
+
+  private IEnumerable<(Entity, Position, Position)> FallGravitationals() =>
+    ListEntitiesWithRule(Rule.Gravitational)
+      .Select(entity =>
+      {
+        var fallTo = entity.CurrentPos;
+        while (true)
+        {
+          var candidate = fallTo with { Y = fallTo.Y - 1 };
+          if (
+            TryGetCellAt(candidate, out var cell) &&
+            cell.All(it => !it.HasRule(Rule.Stop) && !it.HasRule(Rule.Pushable))
+          )
+          {
+            fallTo = candidate;
+          }
+          else
+          {
+            break;
+          }
+        }
+        return (entity, fallTo);
+      }).ToImmutableList()
+      .Select(mv =>
+      {
+        var from = mv.entity.CurrentPos;
+        var to = mv.fallTo;
+        mv.entity.MoveToOrThrow(mv.fallTo);
+        return (mv.entity, from, to);
+      })
+      .Where(it => it.from != it.to)
+      .ToImmutableList();
 
   private bool TryGetCellAt(Position pos, out IEnumerable<Entity> cell)
   {

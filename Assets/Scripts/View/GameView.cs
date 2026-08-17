@@ -169,34 +169,37 @@ public sealed class GameView : MonoBehaviour
     while (true)
     {
       ct.ThrowIfCancellationRequested();
+      var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+      var moveTask =
+        MovePlayerForInputAsync(moveForward, moveRight, moveBackward, moveLeft, stage, cts.Token);
+      var undoTask = UndoMovementForInputAsync(stage, cts.Token);
+      var redoTask = RedoMovementForInputAsync(stage, cts.Token);
+      try
       {
-        var movements =
-          await MovePlayerForInputAsync(moveForward, moveRight, moveBackward, moveLeft, stage, ct);
-        var animations = movements.Select(mv =>
+        (_, var animate) = await UniTask.WhenAny<
+          Func<Func<GameStage.EntityId, StageObject>, CancellationToken, UniTask>
+        >(moveTask, undoTask, redoTask);
+        await animate(idToObj, ct);
+        if (stage.IsCleared)
         {
-          (var x, var y, var z) = mv.To;
-          return idToObj(mv.Who).MoveTo(new(x, y, z), ct);
-        });
-        await UniTask.WhenAll(animations);
+          transitionParent.CreateChild(returnTransitionPrefab, out var transition);
+          return async (ct) => await transition.CoverAsync(ct);
+        }
       }
+      finally
       {
-        var falls = stage.FallGravitationals();
-        var animations = falls.Select(mv =>
-        {
-          (var x, var y, var z) = mv.To;
-          return idToObj(mv.Who).MoveTo(new(x, y, z), ct);
-        });
-        await UniTask.WhenAll(animations);
-      }
-      if (stage.IsCleared)
-      {
-        transitionParent.CreateChild(returnTransitionPrefab, out var transition);
-        return async (ct) => await transition.CoverAsync(ct);
+        cts.Cancel();
       }
     }
   }
 
-  private async UniTask<IEnumerable<GameStage.Movement>> MovePlayerForInputAsync(
+  private async UniTask<
+    Func<
+      Func<GameStage.EntityId, StageObject>,
+      CancellationToken,
+      UniTask
+    >
+  > MovePlayerForInputAsync(
     InputAction moveForward,
     InputAction moveRight,
     InputAction moveBackward,
@@ -207,7 +210,25 @@ public sealed class GameView : MonoBehaviour
   {
     var direction =
       await WaitForPlayerMoveInputAsync(moveForward, moveRight, moveBackward, moveLeft, ct);
-    return stage.MovePlayers(direction);
+    var movements = stage.MovePlayers(direction);
+    undoButton.interactable = stage.CanUndo;
+    redoButton.interactable = stage.CanRedo;
+
+    return async (idToObj, ctx) =>
+    {
+      undoButton.interactable = false;
+      redoButton.interactable = false;
+      foreach (var turn in movements)
+      {
+        await turn.Select(mv =>
+        {
+          (var x, var y, var z) = mv.To;
+          return idToObj(mv.Who).MoveTo(new(x, y, z), ct);
+        });
+      }
+      undoButton.interactable = stage.CanUndo;
+      redoButton.interactable = stage.CanRedo;
+    };
   }
 
   private async UniTask<GameStage.Direction> WaitForPlayerMoveInputAsync(
@@ -241,6 +262,69 @@ public sealed class GameView : MonoBehaviour
       moveBackward.performed -= backwardCb;
       moveLeft.performed -= leftCb;
     }
+  }
+
+  private async UniTask<
+    Func<
+      Func<GameStage.EntityId, StageObject>,
+      CancellationToken,
+      UniTask
+    >
+  > UndoMovementForInputAsync(
+    GameStage stage,
+    CancellationToken ct
+  )
+  {
+    await undoButton.OnClickAsync(ct);
+    var undone = stage.Undo();
+    undoButton.interactable = stage.CanUndo;
+    redoButton.interactable = stage.CanRedo;
+    return async (idToObj, ctx) =>
+    {
+      undoButton.interactable = false;
+      redoButton.interactable = false;
+      foreach (var turn in undone.Reverse())
+      {
+        await turn.Select(mv =>
+        {
+          (var x, var y, var z) = mv.From;
+          return idToObj(mv.Who).RewindTo(new(x, y, z), ct);
+        });
+      }
+      undoButton.interactable = stage.CanUndo;
+      redoButton.interactable = stage.CanRedo;
+    };
+  }
+  private async UniTask<
+    Func<
+      Func<GameStage.EntityId, StageObject>,
+      CancellationToken,
+      UniTask
+    >
+  > RedoMovementForInputAsync(
+    GameStage stage,
+    CancellationToken ct
+  )
+  {
+    await redoButton.OnClickAsync(ct);
+    var redone = stage.Redo();
+    undoButton.interactable = stage.CanUndo;
+    redoButton.interactable = stage.CanRedo;
+    return async (idToObj, ctx) =>
+    {
+      undoButton.interactable = false;
+      redoButton.interactable = false;
+      foreach (var turn in redone)
+      {
+        await turn.Select(mv =>
+        {
+          (var x, var y, var z) = mv.To;
+          return idToObj(mv.Who).MoveTo(new(x, y, z), ct);
+        });
+      }
+      undoButton.interactable = stage.CanUndo;
+      redoButton.interactable = stage.CanRedo;
+    };
   }
 
   private async UniTask<Func<CancellationToken, UniTask<Func<CancellationToken, UniTask>>>> WaitForReturnToTitleActionAsync(

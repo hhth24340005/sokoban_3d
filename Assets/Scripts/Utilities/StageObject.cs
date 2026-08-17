@@ -15,10 +15,16 @@ public class StageObject : MonoBehaviour
   private float animationSeconds = 0.15f;
 
   [SerializeField]
+  private float rewindDurationMultiplier = 0.25f;
+
+  [SerializeField]
   private float gravityAcceleration = 9.8f;
 
   [SerializeField]
   private Ease ease = Ease.OutQuad;
+
+  [SerializeField]
+  private Ease easeRewind = Ease.InQuad;
 
   public IReadOnlyCollection<GameStage.Rule> Rules => rules.Distinct().ToImmutableList();
 
@@ -57,6 +63,51 @@ public class StageObject : MonoBehaviour
         endValue: target.z,
         duration: animationSeconds
       ).SetEase(ease)
+      .WithCancellation(ct);
+
+      await UniTask.WhenAll(x, y, z);
+    }
+    finally
+    {
+      transform.localPosition = target;
+    }
+  }
+
+  public async UniTask RewindTo(Vector3 target, CancellationToken ct)
+  {
+    transform.DOKill();
+    try
+    {
+      var x = transform.DOLocalMoveX(
+        endValue: target.x,
+        duration: animationSeconds * rewindDurationMultiplier
+      ).SetEase(easeRewind)
+      .WithCancellation(ct);
+
+      UniTask y;
+      if (transform.localPosition.y < target.y)
+      {
+        var riseDistance = target.y - transform.localPosition.y;
+        var riseDuration = Mathf.Sqrt(2 * riseDistance / gravityAcceleration);
+        y = transform.DOLocalMoveY(
+          endValue: target.y,
+          duration: riseDuration * rewindDurationMultiplier
+        ).SetEase(Ease.OutQuad)
+        .WithCancellation(ct);
+      }
+      else
+      {
+        y = transform.DOLocalMoveY(
+          endValue: target.y,
+          duration: animationSeconds * rewindDurationMultiplier
+        ).SetEase(ease)
+        .WithCancellation(ct);
+      }
+
+      var z = transform.DOLocalMoveZ(
+        endValue: target.z,
+        duration: animationSeconds * rewindDurationMultiplier
+      ).SetEase(easeRewind)
       .WithCancellation(ct);
 
       await UniTask.WhenAll(x, y, z);
