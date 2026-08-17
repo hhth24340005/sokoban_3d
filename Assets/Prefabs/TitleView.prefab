@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 5902663744054316014}
   - component: {fileID: 5944417923516599451}
   - component: {fileID: 4976315141626396469}
+  - component: {fileID: 6858984634872648191}
   m_Layer: 0
   m_Name: StartButton
   m_TagString: Untagged
@@ -121,6 +122,23 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &6858984634872648191
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2049959487726164101}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a9d7b3eed5f6943ac9125bf754728042, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Sokoban::TitleViewButtonAnimator
+  parent: {fileID: 436866611975650341}
+  text: {fileID: 4309288877136427044}
+  scaleMultiplier: 1.1
+  hoverColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  animationSeconds: 0.1
 --- !u!1 &2353007530339253350
 GameObject:
   m_ObjectHideFlags: 0
@@ -313,6 +331,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8967035430163590319}
   - component: {fileID: 3159381639692883018}
+  - component: {fileID: 436866611975650341}
   m_Layer: 0
   m_Name: HorizontalButtonGroup
   m_TagString: Untagged
@@ -367,6 +386,18 @@ MonoBehaviour:
   m_ChildScaleWidth: 0
   m_ChildScaleHeight: 0
   m_ReverseArrangement: 0
+--- !u!225 &436866611975650341
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3961000884022371457}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1 &4735523441560707767
 GameObject:
   m_ObjectHideFlags: 0
@@ -379,6 +410,7 @@ GameObject:
   - component: {fileID: 469122789340423565}
   - component: {fileID: 6697837201127404825}
   - component: {fileID: 3696486152490603579}
+  - component: {fileID: 8488581648228159359}
   m_Layer: 0
   m_Name: QuitButton
   m_TagString: Untagged
@@ -488,6 +520,23 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &8488581648228159359
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4735523441560707767}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a9d7b3eed5f6943ac9125bf754728042, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Sokoban::TitleViewButtonAnimator
+  parent: {fileID: 436866611975650341}
+  text: {fileID: 4734357780259701087}
+  scaleMultiplier: 1.1
+  hoverColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  animationSeconds: 0.1
 --- !u!1 &5885590107377489973
 GameObject:
   m_ObjectHideFlags: 0
