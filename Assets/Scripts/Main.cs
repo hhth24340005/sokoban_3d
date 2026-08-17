@@ -33,6 +33,7 @@ static class Main
           parent: root,
           fadeIn: gameFadeIn,
           preset: stage,
+          pref: preferences,
           ct: ct
         );
     }

@@ -26,6 +26,7 @@ public sealed class GameView : MonoBehaviour
     Transform parent,
     Func<CancellationToken, UniTask> fadeIn,
     GameStagePreset preset,
+    Preferences pref,
     CancellationToken ct
   )
   {
@@ -42,7 +43,23 @@ public sealed class GameView : MonoBehaviour
       {
         gameInput.Enable();
         await fadeIn(ct);
-        return await instantiated.WaitForReturnToTitleActionAsync(parent, gameInput, ct);
+
+        var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        try
+        {
+          instantiated.OrbitCameraForInputAsync(
+            mouseDelta: gameInput.MoveCamera,
+            camera: stageCamera,
+            bounds: bounds,
+            pref: pref,
+            ct: cts.Token
+          ).Forget();
+          return await instantiated.WaitForReturnToTitleActionAsync(parent, gameInput, cts.Token);
+        }
+        finally
+        {
+          cts.Cancel();
+        }
       }
       finally
       {
@@ -81,6 +98,34 @@ public sealed class GameView : MonoBehaviour
     var size = preset.Size;
     var stage = new GameStage((size.x, size.y, size.z), idToPos);
     return (idToObj, stage);
+  }
+
+  private async UniTask OrbitCameraForInputAsync(
+    InputAction mouseDelta,
+    StageCamera camera,
+    Bounds bounds,
+    Preferences pref,
+    CancellationToken ct
+  )
+  {
+    void OnPerform(InputAction.CallbackContext ctx)
+    {
+      var delta = ctx.ReadValue<Vector2>();
+      camera.Orbit(
+        bounds,
+        deltaYaw: delta.x * pref.Current.CameraYawDegreesPerPixel,
+        deltaPitch: delta.y * pref.Current.CameraPitchDegreesPerPixel
+      );
+    }
+    try
+    {
+      mouseDelta.performed += OnPerform;
+      await ct.WaitUntilCanceled();
+    }
+    finally
+    {
+      mouseDelta.performed -= OnPerform;
+    }
   }
 
   private async UniTask<Func<CancellationToken, UniTask>> WaitForReturnToTitleActionAsync(
