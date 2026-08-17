@@ -12,16 +12,36 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 367cb0af7830547fe959169ee26d636e, type: 3}
   m_Name: GameStage0
   m_EditorClassIdentifier: Assembly-CSharp::GameStage
-  size: {x: 5, y: 1, z: 1}
+  size: {x: 5, y: 1, z: 5}
   cells:
-  - gameObjects:
-    - {fileID: 4864211005517111285, guid: 6fac8f009a2f14e19bfd30a85e66f94d, type: 3}
-  - gameObjects:
-    - {fileID: 7785695311329507604, guid: c45991e3ca4f14e078a6ca7d3fee6ce4, type: 3}
-  - gameObjects: []
-  - gameObjects: []
-  - gameObjects:
-    - {fileID: 4112015788816617117, guid: 13a8fb72183cb4ad1ac89d36a9b4e939, type: 3}
+  - stageObjects: []
+  - stageObjects: []
+  - stageObjects: []
+  - stageObjects: []
+  - stageObjects: []
+  - stageObjects: []
+  - stageObjects: []
+  - stageObjects: []
+  - stageObjects: []
+  - stageObjects: []
+  - stageObjects:
+    - {fileID: 5038035011909425574, guid: 6fac8f009a2f14e19bfd30a85e66f94d, type: 3}
+  - stageObjects:
+    - {fileID: 6469214695562418017, guid: c45991e3ca4f14e078a6ca7d3fee6ce4, type: 3}
+  - stageObjects: []
+  - stageObjects:
+    - {fileID: 5114083548128612202, guid: 13a8fb72183cb4ad1ac89d36a9b4e939, type: 3}
+  - stageObjects: []
+  - stageObjects: []
+  - stageObjects: []
+  - stageObjects: []
+  - stageObjects: []
+  - stageObjects: []
+  - stageObjects: []
+  - stageObjects: []
+  - stageObjects: []
+  - stageObjects: []
+  - stageObjects: []
   floor0Prefab: {fileID: 3449819701990008521, guid: d3f45393e2c5a4dfa808caef045764fd, type: 3}
   floor1Prefab: {fileID: 3449819701990008521, guid: d0f8de1142e17448c834be26079d936e, type: 3}
   wallPrefab: {fileID: 1498595862586674187, guid: fd236ca8cae084696b0b6207bd01f025, type: 3}
