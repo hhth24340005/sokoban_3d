@@ -4,10 +4,10 @@ using UnityEngine;
 public sealed class DefaultPreferences : ScriptableObject
 {
   [SerializeField]
-  private float cameraYawDegreesPerPixel = 0.25f;
+  private float cameraYawDegreesPerPixel = 0.5f;
 
   [SerializeField]
-  private float cameraPitchDegreesPerPixel = 0.15f;
+  private float cameraPitchDegreesPerPixel = -0.3f;
 
   public float CameraYawDegreesPerPixel => cameraYawDegreesPerPixel;
 

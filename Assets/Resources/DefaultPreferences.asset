@@ -12,6 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9eb3272a5f52e40018747f155f2680d2, type: 3}
   m_Name: DefaultPreferences
   m_EditorClassIdentifier: Sokoban::DefaultPreferences
-  cameraYawDegreesPerPixel: 0.25
-  cameraPitchDegreesPerPixel: 0.15
-  cameraDistancePerScrollNotch: 1.5
+  cameraYawDegreesPerPixel: 0.5
+  cameraPitchDegreesPerPixel: -0.3
