@@ -35,7 +35,7 @@ public sealed class GameView : MonoBehaviour
     {
       (var idToObj, var stage) = CreateStage(instantiated.transform, preset);
       var bounds = new Bounds(center: preset.Center, size: preset.Size);
-      stageCamera.Orbit(bounds);
+      stageCamera.Init(bounds);
 
       using var inputAction = new PlayerInputActions();
       var gameInput = inputAction.Game;
@@ -50,7 +50,6 @@ public sealed class GameView : MonoBehaviour
           instantiated.OrbitCameraForInputAsync(
             mouseDelta: gameInput.MoveCamera,
             camera: stageCamera,
-            bounds: bounds,
             pref: pref,
             ct: cts.Token
           ).Forget();
@@ -63,6 +62,7 @@ public sealed class GameView : MonoBehaviour
               gameInput.MovePlayerBackward,
               gameInput.MovePlayerLeft,
               stage,
+              stageCamera,
               (id) => idToObj[id],
               cts.Token
             );
@@ -130,7 +130,6 @@ public sealed class GameView : MonoBehaviour
   private async UniTask OrbitCameraForInputAsync(
     InputAction mouseDelta,
     StageCamera camera,
-    Bounds bounds,
     Preferences pref,
     CancellationToken ct
   )
@@ -138,11 +137,11 @@ public sealed class GameView : MonoBehaviour
     void OnPerform(InputAction.CallbackContext ctx)
     {
       var delta = ctx.ReadValue<Vector2>();
-      camera.Orbit(
-        bounds,
+      camera.OrbitAsync(
+        ct,
         deltaYaw: delta.x * pref.Current.CameraYawDegreesPerPixel,
         deltaPitch: delta.y * pref.Current.CameraPitchDegreesPerPixel
-      );
+      ).Forget();
     }
     try
     {
@@ -162,6 +161,7 @@ public sealed class GameView : MonoBehaviour
     InputAction moveBackward,
     InputAction moveLeft,
     GameStage stage,
+    StageCamera camera,
     Func<GameStage.EntityId, StageObject> idToObj,
     CancellationToken ct
   )
@@ -171,7 +171,7 @@ public sealed class GameView : MonoBehaviour
       ct.ThrowIfCancellationRequested();
       var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
       var moveTask =
-        MovePlayerForInputAsync(moveForward, moveRight, moveBackward, moveLeft, stage, cts.Token);
+        MovePlayerForInputAsync(moveForward, moveRight, moveBackward, moveLeft, stage, camera, cts.Token);
       var undoTask = UndoMovementForInputAsync(stage, cts.Token);
       var redoTask = RedoMovementForInputAsync(stage, cts.Token);
       try
@@ -205,12 +205,13 @@ public sealed class GameView : MonoBehaviour
     InputAction moveBackward,
     InputAction moveLeft,
     GameStage stage,
+    StageCamera camera,
     CancellationToken ct
   )
   {
-    var direction =
+    var worldDirection =
       await WaitForPlayerMoveInputAsync(moveForward, moveRight, moveBackward, moveLeft, ct);
-    var movements = stage.MovePlayers(direction);
+    var movements = stage.MovePlayers(camera.CameraLocalInput(worldDirection));
     undoButton.interactable = stage.CanUndo;
     redoButton.interactable = stage.CanRedo;
 
