@@ -56,7 +56,7 @@ public sealed class GameStage
   public IEnumerable<IEnumerable<Movement>> MovePlayers(Direction direction)
   {
     var ret =
-      new List<IEnumerable<(Entity, Position, Position)>> {
+      new List<IReadOnlyList<(Entity, Position, Position)>> {
         ListEntitiesWithRule(Rule.Controllable)
         .SelectMany(player =>
         {
@@ -106,10 +106,13 @@ public sealed class GameStage
           it.Item1.MoveToOrThrow(it.Item3);
           return it;
         }).ToImmutableList(),
-        FallGravitationals(),
+        FallGravitationals().ToImmutableList(),
       }.ToImmutableList();
-    moveHistory.Push(ret);
-    undoHistory.Clear();
+    if (0 < ret.Sum(it => it.Count))
+    {
+      moveHistory.Push(ret);
+      undoHistory.Clear();
+    }
     return ret.Select(turn => turn.Select(mv => new Movement(mv.Item1.Id, mv.Item2, mv.Item3)));
   }
 
