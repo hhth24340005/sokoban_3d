@@ -39,7 +39,8 @@ public sealed class StageCamera : MonoBehaviour
 
   public async UniTask OrbitAsync(CancellationToken ct, float deltaYaw = 0f, float deltaPitch = 0f)
   {
-    transform.DOKill();
+    compassNeedle.DOKill();
+    compassNeedlePivot.DOKill();
     var yaw = transform.localEulerAngles.y;
     var pitch = transform.localEulerAngles.x;
     var roll = transform.localEulerAngles.z;
