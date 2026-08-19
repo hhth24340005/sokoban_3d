@@ -42,12 +42,6 @@ static class Main
   [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
   private static async void Boot()
   {
-    var originalScene = SceneManager.GetActiveScene();
-    var rootSceneName = $"Root-{Guid.NewGuid()}";
-    var rootScene = SceneManager.CreateScene(rootSceneName);
-    SceneManager.SetActiveScene(rootScene);
-    await SceneManager.UnloadSceneAsync(originalScene);
-
     var assetRegistry = (AssetRegistry)await Resources.LoadAsync("AssetRegistry");
     var rootObject = new GameObject("Root");
     try
