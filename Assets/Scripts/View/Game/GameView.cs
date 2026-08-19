@@ -171,7 +171,7 @@ public sealed class GameView : MonoBehaviour
       (var width, var depth) = directions[dir];
       var wall = pivot.CreateChild(wallPrefab).GameObject;
       wall.transform.localPosition = new(0f, 0f, depth / 2f);
-      wall.transform.localScale = new(width, size.y, 0f);
+      wall.transform.localScale = new(width, 1f, 0f);
     }
   }
 
