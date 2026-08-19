@@ -128,7 +128,6 @@ public sealed class GameView : MonoBehaviour
         typeToRules.ToImmutableDictionary()
       );
     CreateFloor(parent, (preset.Size.x, preset.Size.z), preset.Floor0Prefab, preset.Floor1Prefab);
-    CreateWall(parent, preset.Size, preset.WallPrefab);
     return (idToObj, stage);
   }
 
@@ -149,32 +148,6 @@ public sealed class GameView : MonoBehaviour
         var created = pivot.CreateChild(floorPrefab);
         created.GameObject.transform.localPosition = new(x, 0f, z);
       }
-    }
-  }
-
-  private static void CreateWall(
-    Transform parent,
-    Vector3Int size,
-    GameObject wallPrefab
-  )
-  {
-    var directions = new[]
-    {
-      (size.x, size.z),
-      (size.z, size.x),
-      (size.x, size.z),
-      (size.z, size.x),
-    };
-    var center = parent.CreateChild("Center").GameObject;
-    center.transform.localPosition = new((size.x - 1) / 2f, 0f, (size.z - 1) / 2f);
-    foreach (var dir in Enumerable.Range(0, directions.Length))
-    {
-      var pivot = center.CreateChild("WallPivot").GameObject;
-      pivot.transform.localRotation = Quaternion.Euler(0f, dir * 90f, 0f);
-      (var width, var depth) = directions[dir];
-      var wall = pivot.CreateChild(wallPrefab).GameObject;
-      wall.transform.localPosition = new(0f, 0f, depth / 2f);
-      wall.transform.localScale = new(width, 1f, 0f);
     }
   }
 
