@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 3303721263208909656}
   - component: {fileID: 5161845171339514001}
   m_Layer: 0
-  m_Name: SubjectBoxCube
+  m_Name: Cube
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -101,7 +101,7 @@ GameObject:
   - component: {fileID: 9213355242951243108}
   - component: {fileID: 6469214695562418017}
   m_Layer: 0
-  m_Name: SubjectBox
+  m_Name: Crate
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

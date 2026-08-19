@@ -138,8 +138,8 @@ def save(array: np.ndarray, name: str) -> None:
 
 def main() -> None:
     albedo, height = build()
-    save(albedo, "SubjectBoxAlbedo.png")
-    save(height_to_normal(height), "SubjectBoxNormal.png")
+    save(albedo, "CrateAlbedo.png")
+    save(height_to_normal(height), "CrateNormal.png")
 
 
 if __name__ == "__main__":

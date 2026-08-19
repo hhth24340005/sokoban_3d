@@ -12,7 +12,7 @@ python3 -m venv .venv
 ## 実行
 
 ```sh
-.venv/bin/python generate_crate.py  # 木箱  → Assets/Images/SubjectBox*.png
+.venv/bin/python generate_crate.py  # 木箱  → Assets/Images/Crate*.png
 .venv/bin/python generate_floor.py  # 床    → Assets/Images/Floor*.png
 ```
 
