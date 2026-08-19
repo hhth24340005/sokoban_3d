@@ -88,7 +88,8 @@ public static class GameObjects
   public static ScopedGameObject CreateChild(
     this Transform parent,
     GameObject gameObject,
-    bool copyIfExisting = true
+    bool copyIfExisting = true,
+    bool? setActive = null
   )
   {
     GameObject ret;
@@ -101,20 +102,26 @@ public static class GameObjects
       ret = gameObject;
       gameObject.transform.SetParent(parent, worldPositionStays: false);
     }
+    if (setActive is bool active)
+    {
+      ret.SetActive(active);
+    }
     return new(ret);
   }
 
   public static ScopedGameObject CreateChild(
     this GameObject parent,
     GameObject prefab,
-    bool copyIfExisting = true
-  ) => parent.transform.CreateChild(prefab, copyIfExisting);
+    bool copyIfExisting = true,
+    bool? setActive = null
+  ) => parent.transform.CreateChild(prefab, copyIfExisting, setActive);
 
   public static ScopedGameObject CreateChild(
     this ScopedGameObject parent,
     GameObject prefab,
-    bool copyIfExisting = true
-  ) => parent.GameObject.CreateChild(prefab, copyIfExisting);
+    bool copyIfExisting = true,
+    bool? setActive = null
+  ) => parent.GameObject.CreateChild(prefab, copyIfExisting, setActive);
 
   // ===
 
@@ -122,23 +129,28 @@ public static class GameObjects
     this Transform parent,
     C gameObject,
     out C component,
-    bool copyIfExisting = true
+    bool copyIfExisting = true,
+    bool? setActive = null
   ) where C : Component =>
     parent
-      .CreateChild(gameObject.gameObject, copyIfExisting)
+      .CreateChild(gameObject.gameObject, copyIfExisting, setActive)
       .With(out component);
 
   public static ScopedGameObject CreateChild<C>(
     this GameObject parent,
     C gameObject,
     out C component,
-    bool copyIfExisting = true
-  ) where C : Component => parent.transform.CreateChild(gameObject, out component, copyIfExisting);
+    bool copyIfExisting = true,
+    bool? setActive = null
+  ) where C : Component =>
+    parent.transform.CreateChild(gameObject, out component, copyIfExisting, setActive);
 
   public static ScopedGameObject CreateChild<C>(
     this ScopedGameObject parent,
     C gameObject,
     out C component,
-    bool copyIfExisting = true
-  ) where C : Component => parent.GameObject.CreateChild(gameObject, out component, copyIfExisting);
+    bool copyIfExisting = true,
+    bool? setActive = null
+  ) where C : Component =>
+    parent.GameObject.CreateChild(gameObject, out component, copyIfExisting, setActive);
 }
