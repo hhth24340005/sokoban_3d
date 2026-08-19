@@ -103,7 +103,10 @@ public sealed class GameView : MonoBehaviour
         return positions.Select(pos =>
         {
           parent.CreateChild(prefab, out var spawned);
-          spawned.transform.localPosition = new(pos.X, pos.Y, pos.Z);
+          spawned.transform.SetLocalPositionAndRotation(
+            localPosition: new(pos.X, pos.Y, pos.Z),
+            localRotation: Quaternion.Euler(0f, 180f, 0f)
+          );
           var data = (typeId, pos);
           return (spawned, data);
         });
@@ -344,6 +347,7 @@ public sealed class GameView : MonoBehaviour
       redoButton.interactable = stage.CanRedo;
     };
   }
+
   private async UniTask<
     Func<
       Func<GameStage.EntityId, StageObject>,

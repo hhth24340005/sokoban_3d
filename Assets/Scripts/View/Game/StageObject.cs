@@ -28,7 +28,7 @@ public class StageObject : MonoBehaviour
 
   public IReadOnlyCollection<GameStage.Rule> Rules => rules.Distinct().ToImmutableList();
 
-  public async UniTask MoveTo(Vector3 target, CancellationToken ct)
+  public virtual async UniTask MoveTo(Vector3 target, CancellationToken ct)
   {
     transform.DOKill();
     try
@@ -73,7 +73,7 @@ public class StageObject : MonoBehaviour
     }
   }
 
-  public async UniTask RewindTo(Vector3 target, CancellationToken ct)
+  public virtual async UniTask RewindTo(Vector3 target, CancellationToken ct)
   {
     transform.DOKill();
     try
