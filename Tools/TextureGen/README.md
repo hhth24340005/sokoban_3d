@@ -1,6 +1,6 @@
 # TextureGen
 
-木箱テクスチャ (Albedo / Normal) の生成スクリプト。
+テクスチャ (Albedo / Normal) の生成スクリプト。
 
 ## セットアップ
 
@@ -12,9 +12,10 @@ python3 -m venv .venv
 ## 実行
 
 ```sh
-.venv/bin/python generate_crate.py
+.venv/bin/python generate_crate.py  # 木箱  → Assets/Images/SubjectBox*.png
+.venv/bin/python generate_floor.py  # 床    → Assets/Images/Floor*.png
 ```
 
-`Assets/Images/SubjectBoxAlbedo.png` と `SubjectBoxNormal.png` を出力する。
+調整用の定数は各スクリプトの冒頭にまとめてある。
 
 Unity 側では Normal の Texture Type を `Normal map` に設定すること。
