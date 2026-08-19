@@ -12,9 +12,6 @@ static class Main
     CancellationToken ct
   )
   {
-    RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
-    RenderSettings.ambientLight = new Color(0.7f, 0.7f, 0.7f);
-
     var preferences = Preferences.Of(assets.DefaultPreferences);
     root.CreateChild(assets.ApplicationEnterTransition, out var appEnterTransition);
     var titleEnterFadeIn = appEnterTransition.Cover();
