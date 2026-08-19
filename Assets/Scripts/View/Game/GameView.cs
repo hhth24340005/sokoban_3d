@@ -127,28 +127,9 @@ public sealed class GameView : MonoBehaviour
         idToData,
         typeToRules.ToImmutableDictionary()
       );
-    CreateFloor(parent, (preset.Size.x, preset.Size.z), preset.Floor0Prefab, preset.Floor1Prefab);
+    parent.CreateChild(preset.GroundPrefab, out var ground);
+    ground.Build(preset.Size);
     return (idToObj, stage);
-  }
-
-  private static void CreateFloor(
-    Transform parent,
-    (int x, int z) size,
-    GameObject floor0Prefab,
-    GameObject floor1Prefab
-  )
-  {
-    var pivot = parent.CreateChild("FloorPivot");
-    var floorPrefabs = new[] { floor0Prefab, floor1Prefab };
-    foreach (var x in Enumerable.Range(0, size.x))
-    {
-      foreach (var z in Enumerable.Range(0, size.z))
-      {
-        var floorPrefab = floorPrefabs[(x + (z % floorPrefabs.Length)) % floorPrefabs.Length];
-        var created = pivot.CreateChild(floorPrefab);
-        created.GameObject.transform.localPosition = new(x, 0f, z);
-      }
-    }
   }
 
   private async UniTask OrbitCameraForInputAsync(

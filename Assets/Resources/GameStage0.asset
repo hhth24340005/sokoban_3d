@@ -83,7 +83,5 @@ MonoBehaviour:
   - stageObjects: []
   - stageObjects: []
   - stageObjects: []
-  floor0Prefab: {fileID: 3449819701990008521, guid: d3f45393e2c5a4dfa808caef045764fd, type: 3}
-  floor1Prefab: {fileID: 3449819701990008521, guid: d0f8de1142e17448c834be26079d936e, type: 3}
-  wallPrefab: {fileID: 1498595862586674187, guid: fd236ca8cae084696b0b6207bd01f025, type: 3}
+  groundPrefab: {fileID: 7147285430464931746, guid: 921b4f74cd0094be59d91ee7abf83f0c, type: 3}
   stageCameraPrefab: {fileID: 7554876856681007308, guid: a78c65e70d2b74f9ea610707b934ca70, type: 3}
