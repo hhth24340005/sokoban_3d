@@ -154,7 +154,7 @@ Material:
     - _HorizonColor: {r: 0.17254902, g: 0.2901961, b: 0.4862745, a: 1}
     - _SkyTint: {r: 0.44705883, g: 0.5529412, b: 0.7058824, a: 1}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
-    - _StarColor: {r: 128, g: 124.486275, b: 115.95294, a: 1}
+    - _StarColor: {r: 542.34814, g: 527.46014, b: 491.30365, a: 1}
     - _TopColor: {r: 0.039215688, g: 0.06666667, b: 0.15686275, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
