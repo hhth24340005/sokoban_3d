@@ -823,6 +823,7 @@ MonoBehaviour:
   camera: {fileID: 1154041252267154737}
   compassNeedle: {fileID: 8778487203668301180}
   compassNeedlePivot: {fileID: 2115740842548316269}
+  compassEase: 30
   animationSeconds: 1.5
   distanceMultiplier: 0.9
   initialPitchFactor: 0.5

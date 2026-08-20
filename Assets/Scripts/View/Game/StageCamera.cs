@@ -67,11 +67,11 @@ public sealed class StageCamera : MonoBehaviour
     await UniTask.WhenAll(
       compassNeedle
         .DOLocalRotateQuaternion(needleQuart, animationSeconds)
-        .SetEase(Ease.OutBounce)
+        .SetEase(compassEase)
         .WithCancellation(ct),
       compassNeedlePivot
         .DOLocalRotateQuaternion(needlePivotQuart, animationSeconds)
-        .SetEase(Ease.OutQuad)
+        .SetEase(compassEase)
         .WithCancellation(ct)
     );
   }
