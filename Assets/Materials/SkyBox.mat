@@ -103,7 +103,9 @@ Material:
     - _Blend: 0
     - _BlendModePreserveSpecular: 1
     - _BlinkDuration: 2
-    - _BlinkSpeed: 1.5
+    - _BlinkRandomness: 1
+    - _BlinkSpeed: 10
+    - _BlinkSpeedRandomness: 20
     - _BlinkStrength: 1
     - _BottomDepth: 0.3
     - _BumpScale: 1
@@ -121,6 +123,8 @@ Material:
     - _GlossMapScale: 0
     - _Glossiness: 0
     - _GlossyReflections: 0
+    - _MaxBlinkFrequency: 10
+    - _MaxBlinkSpeed: 5
     - _Metallic: 0
     - _OcclusionStrength: 1
     - _Parallax: 0.005
