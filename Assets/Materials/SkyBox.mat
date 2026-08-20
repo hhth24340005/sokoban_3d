@@ -21,11 +21,10 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: SkyBox
-  m_Shader: {fileID: 106, guid: 0000000000000000f000000000000000, type: 0}
+  m_Shader: {fileID: -6465566751694194690, guid: 8702c3c59494b433ba4658460f23e591, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
-  m_ValidKeywords:
-  - _SUNDISK_HIGH_QUALITY
+  m_ValidKeywords: []
   m_InvalidKeywords: []
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
@@ -99,14 +98,20 @@ Material:
     - _AddPrecomputedVelocity: 0
     - _AlphaClip: 0
     - _AlphaToMask: 0
+    - _AngleOffset: 334
     - _AtmosphereThickness: 0.7
     - _Blend: 0
     - _BlendModePreserveSpecular: 1
+    - _BlinkDuration: 2
+    - _BlinkSpeed: 1.5
+    - _BlinkStrength: 1
+    - _BottomDepth: 0.3
     - _BumpScale: 1
     - _ClearCoatMask: 0
     - _ClearCoatSmoothness: 0
     - _Cull: 2
     - _Cutoff: 0.5
+    - _Density: 120
     - _DetailAlbedoMapScale: 1
     - _DetailNormalMapScale: 1
     - _DstBlend: 0
@@ -119,6 +124,8 @@ Material:
     - _Metallic: 0
     - _OcclusionStrength: 1
     - _Parallax: 0.005
+    - _Power: 0.3
+    - _QueueControl: 0
     - _QueueOffset: 0
     - _ReceiveShadows: 1
     - _Smoothness: 0.5
@@ -130,15 +137,20 @@ Material:
     - _SunSize: 0.03
     - _SunSizeConvergence: 10
     - _Surface: 0
+    - _TopHeight: 0.5
     - _WorkflowMode: 1
     - _XRMotionVectorsPass: 1
     - _ZWrite: 1
     m_Colors:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
+    - _BottomColor: {r: 0.36862743, g: 0.42745095, b: 0.5882353, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
-    - _GroundColor: {r: 0.1882353, g: 0.1882353, b: 0.1882353, a: 1}
+    - _GroundColor: {r: 0.254902, g: 0.4117647, b: 0.882353, a: 1}
+    - _HorizonColor: {r: 0.17254902, g: 0.2901961, b: 0.4862745, a: 1}
     - _SkyTint: {r: 0.44705883, g: 0.5529412, b: 0.7058824, a: 1}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
+    - _StarColor: {r: 128, g: 124.486275, b: 115.95294, a: 1}
+    - _TopColor: {r: 0.039215688, g: 0.06666667, b: 0.15686275, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
