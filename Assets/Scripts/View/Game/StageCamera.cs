@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using DG.Tweening;
@@ -52,7 +51,7 @@ public sealed class StageCamera : MonoBehaviour
     var needlePivotQuart = Quaternion.Euler(0f, 90f * RotationOf(newYaw), 0f);
 
     transform.localRotation = newRotation;
-    await new List<UniTask> {
+    await UniTask.WhenAll(
       compassNeedle
         .DOLocalRotateQuaternion(needleQuart, animationSeconds)
         .SetEase(Ease.OutBounce)
@@ -60,8 +59,8 @@ public sealed class StageCamera : MonoBehaviour
       compassNeedlePivot
         .DOLocalRotateQuaternion(needlePivotQuart, animationSeconds)
         .SetEase(Ease.OutQuad)
-        .WithCancellation(ct),
-    };
+        .WithCancellation(ct)
+    );
   }
 
   public GameStage.Direction CameraLocalInput(GameStage.Direction world)
