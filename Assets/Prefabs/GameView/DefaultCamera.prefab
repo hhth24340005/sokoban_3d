@@ -827,8 +827,8 @@ MonoBehaviour:
   distanceMultiplier: 0.9
   initialPitchFactor: 0.5
   pitchLimitDegrees:
-    a: 15
-    b: 70
+    a: -30
+    b: 60
 --- !u!1 &3935607772252233275
 GameObject:
   m_ObjectHideFlags: 0

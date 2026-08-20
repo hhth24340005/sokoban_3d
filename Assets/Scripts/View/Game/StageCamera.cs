@@ -18,6 +18,12 @@ public sealed class StageCamera : MonoBehaviour
   private Transform compassNeedlePivot;
 
   [SerializeField]
+  private float compassPitch = -20f;
+
+  [SerializeField]
+  private Ease compassEase = Ease.OutBounce;
+
+  [SerializeField]
   private float animationSeconds = 1.5f;
 
   [SerializeField]
@@ -34,9 +40,9 @@ public sealed class StageCamera : MonoBehaviour
     camera.transform.localPosition =
       new(0, 0, -FitDistance(stage.extents.magnitude) * distanceMultiplier);
     var pitch = pitchLimitDegrees.Lerp(initialPitchFactor);
-    compassNeedle.localRotation = Quaternion.Euler(-pitch, 0f, 0f);
     pivot.transform.localPosition = stage.center;
     pivot.transform.localRotation = Quaternion.Euler(pitch, 0f, 0f);
+    compassNeedle.localRotation = Quaternion.Euler(compassPitch, 0f, 0f);
   }
 
   public async UniTask OrbitAsync(CancellationToken ct, float deltaYaw = 0f, float deltaPitch = 0f)
@@ -54,7 +60,7 @@ public sealed class StageCamera : MonoBehaviour
     var newPitch = pitchLimitDegrees.Clamp(pitch + deltaPitch);
 
     var newRotation = Quaternion.Euler(newPitch, newYaw, roll);
-    var needleQuart = Quaternion.Euler(-newPitch, -newYaw, -roll);
+    var needleQuart = Quaternion.Euler(compassPitch, -newYaw, -roll);
     var needlePivotQuart = Quaternion.Euler(0f, 90f * RotationOf(newYaw), 0f);
 
     pivot.transform.localRotation = newRotation;
