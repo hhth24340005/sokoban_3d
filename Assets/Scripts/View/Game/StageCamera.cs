@@ -6,6 +6,9 @@ using UnityEngine;
 public sealed class StageCamera : MonoBehaviour
 {
   [SerializeField]
+  private Transform pivot;
+
+  [SerializeField]
   private Camera camera;
 
   [SerializeField]
@@ -31,18 +34,22 @@ public sealed class StageCamera : MonoBehaviour
     camera.transform.localPosition =
       new(0, 0, -FitDistance(stage.extents.magnitude) * distanceMultiplier);
     var pitch = pitchLimitDegrees.Lerp(initialPitchFactor);
-    transform.localPosition = stage.center;
-    transform.localRotation = Quaternion.Euler(pitch, 0f, 0f);
     compassNeedle.localRotation = Quaternion.Euler(-pitch, 0f, 0f);
+    pivot.transform.localPosition = stage.center;
+    pivot.transform.localRotation = Quaternion.Euler(pitch, 0f, 0f);
   }
 
   public async UniTask OrbitAsync(CancellationToken ct, float deltaYaw = 0f, float deltaPitch = 0f)
   {
     compassNeedle.DOKill();
     compassNeedlePivot.DOKill();
-    var yaw = transform.localEulerAngles.y;
-    var pitch = transform.localEulerAngles.x;
-    var roll = transform.localEulerAngles.z;
+    var yaw = pivot.transform.localEulerAngles.y;
+    var pitch = pivot.transform.localEulerAngles.x;
+    if (180f < pitch)
+    {
+      pitch -= 360f;
+    }
+    var roll = pivot.transform.localEulerAngles.z;
     var newYaw = yaw + deltaYaw;
     var newPitch = pitchLimitDegrees.Clamp(pitch + deltaPitch);
 
@@ -50,7 +57,7 @@ public sealed class StageCamera : MonoBehaviour
     var needleQuart = Quaternion.Euler(-newPitch, -newYaw, -roll);
     var needlePivotQuart = Quaternion.Euler(0f, 90f * RotationOf(newYaw), 0f);
 
-    transform.localRotation = newRotation;
+    pivot.transform.localRotation = newRotation;
     await UniTask.WhenAll(
       compassNeedle
         .DOLocalRotateQuaternion(needleQuart, animationSeconds)
@@ -74,7 +81,7 @@ public sealed class StageCamera : MonoBehaviour
       _ => throw new System.Exception($"Unknown {nameof(GameStage.Direction)} type >.<"),
     };
     var ret = world;
-    var rot = RotationOf(transform.localEulerAngles.y);
+    var rot = RotationOf(pivot.transform.localEulerAngles.y);
     for (var i = 0; i < rot; i++)
     {
       ret = Increment(ret);
