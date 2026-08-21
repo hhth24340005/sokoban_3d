@@ -19,6 +19,9 @@ public sealed class GameStagePreset : ScriptableObject
   [SerializeField]
   private StageCamera stageCameraPrefab;
 
+  [SerializeField]
+  private AudioClip music;
+
   public Vector3Int Size => size;
 
   public Vector3 Center => new(
@@ -47,6 +50,8 @@ public sealed class GameStagePreset : ScriptableObject
   public StageGround GroundPrefab => groundPrefab;
 
   public StageCamera StageCameraPrefab => stageCameraPrefab;
+
+  public AudioClip Music => music;
 
   private GameStage.Position ToPosition(int index) =>
     new(

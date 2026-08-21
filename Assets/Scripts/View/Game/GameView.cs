@@ -22,6 +22,12 @@ public sealed class GameView : MonoBehaviour
   [SerializeField]
   private Button redoButton;
 
+  [SerializeField]
+  private AudioSource musicSource;
+
+  [SerializeField]
+  private AudioSource seSource;
+
   public async UniTask<Func<CancellationToken, UniTask>> PlayAsync(
     Transform parent,
     Func<CancellationToken, UniTask> fadeIn,
@@ -42,8 +48,12 @@ public sealed class GameView : MonoBehaviour
       var gameInput = inputAction.Game;
       try
       {
-        gameInput.Enable();
+        await UniTask.Delay(250, cancellationToken: ct);
+        instantiated.musicSource.clip = preset.Music;
+        instantiated.musicSource.Play();
+        await UniTask.Delay(750, cancellationToken: ct);
         await fadeIn(ct);
+        gameInput.Enable();
 
         var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         try
@@ -374,10 +384,12 @@ public sealed class GameView : MonoBehaviour
     {
       ct.ThrowIfCancellationRequested();
       await WaitForPauseActionAsync(inputAction, ct);
-      var pauseResult = await pauseView.ShowAndWaitForAction(inputAction, ct);
+      musicSource.Pause();
+      var pauseResult = await pauseView.ShowAndWaitForAction(seSource, inputAction, ct);
       switch (pauseResult)
       {
         case PauseView.Result.Resume:
+          musicSource.UnPause();
           continue;
         case PauseView.Result.ReturnToTitle:
           parent.CreateChild(returnTransitionPrefab, out var transition);

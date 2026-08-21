@@ -19,7 +19,14 @@ public sealed class PauseView : MonoBehaviour
   [SerializeField]
   private PauseViewButtonGroup buttonGroup;
 
+  [SerializeField]
+  private AudioClip showSound;
+
+  [SerializeField]
+  private float showSoundPitch = 1f;
+
   public async UniTask<Result> ShowAndWaitForAction(
+    AudioSource audio,
     PlayerInputActions.GameActions gameInput,
     CancellationToken ct
   )
@@ -32,6 +39,9 @@ public sealed class PauseView : MonoBehaviour
       gameInput.Disable();
       uiInput.Enable();
       gameObject.SetActive(true);
+
+      audio.pitch = showSoundPitch;
+      audio.PlayOneShot(showSound);
 
       await DOTween.To(
         getter: () => overlay.alpha,

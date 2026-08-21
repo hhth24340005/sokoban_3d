@@ -85,3 +85,4 @@ MonoBehaviour:
   - stageObjects: []
   groundPrefab: {fileID: 7147285430464931746, guid: 921b4f74cd0094be59d91ee7abf83f0c, type: 3}
   stageCameraPrefab: {fileID: 7554876856681007308, guid: a78c65e70d2b74f9ea610707b934ca70, type: 3}
+  music: {fileID: 8300000, guid: 19ec0d0e8942b42d78d758bda16f08e4, type: 3}
