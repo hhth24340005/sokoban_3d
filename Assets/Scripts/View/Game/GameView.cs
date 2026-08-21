@@ -179,21 +179,22 @@ public sealed class GameView : MonoBehaviour
         MovePlayerForInputAsync(moveForward, moveRight, moveBackward, moveLeft, stage, camera, cts.Token);
       var undoTask = UndoMovementForInputAsync(stage, cts.Token);
       var redoTask = RedoMovementForInputAsync(stage, cts.Token);
+      Func<Func<GameStage.EntityId, StageObject>, CancellationToken, UniTask> animate;
       try
       {
-        (_, var animate) = await UniTask.WhenAny<
+        (_, animate) = await UniTask.WhenAny<
           Func<Func<GameStage.EntityId, StageObject>, CancellationToken, UniTask>
         >(moveTask, undoTask, redoTask);
-        await animate(idToObj, ct);
-        if (stage.IsCleared)
-        {
-          transitionParent.CreateChild(returnTransitionPrefab, out var transition);
-          return async (ct) => await transition.CoverAsync(ct);
-        }
       }
       finally
       {
         cts.Cancel();
+      }
+      await animate(idToObj, ct);
+      if (stage.IsCleared)
+      {
+        transitionParent.CreateChild(returnTransitionPrefab, out var transition);
+        return async (ct) => await transition.CoverAsync(ct);
       }
     }
   }
@@ -220,7 +221,7 @@ public sealed class GameView : MonoBehaviour
     undoButton.interactable = stage.CanUndo;
     redoButton.interactable = stage.CanRedo;
 
-    return async (idToObj, ctx) =>
+    return async (idToObj, ct) =>
     {
       undoButton.interactable = false;
       redoButton.interactable = false;
@@ -285,7 +286,7 @@ public sealed class GameView : MonoBehaviour
     var undone = stage.Undo();
     undoButton.interactable = stage.CanUndo;
     redoButton.interactable = stage.CanRedo;
-    return async (idToObj, ctx) =>
+    return async (idToObj, ct) =>
     {
       undoButton.interactable = false;
       redoButton.interactable = false;
@@ -317,7 +318,7 @@ public sealed class GameView : MonoBehaviour
     var redone = stage.Redo();
     undoButton.interactable = stage.CanUndo;
     redoButton.interactable = stage.CanRedo;
-    return async (idToObj, ctx) =>
+    return async (idToObj, ct) =>
     {
       undoButton.interactable = false;
       redoButton.interactable = false;
