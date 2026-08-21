@@ -15,6 +15,9 @@ public class PlayerStageObject : StageObject
   [SerializeField]
   private float bumpSeconds = 0.15f;
 
+  [SerializeField]
+  private AudioSource moveSound;
+
   private Tween _rotateTween;
 
   public async UniTask TurnAsync(GameStage.Direction direction, CancellationToken ct)
