@@ -10,10 +10,10 @@ public sealed class GameStage
   private readonly List<Entity> _sortedEntities;
   private readonly ISet<(TypeId, Rule)> _rules;
   private readonly Stack<
-    IEnumerable<IEnumerable<(Entity who, Position from, Position to)>>
+    IReadOnlyDictionary<Entity, IReadOnlyList<Movement>>
   > _moveHistory = new();
   private readonly Stack<
-    IEnumerable<IEnumerable<(Entity who, Position from, Position to)>>
+    IReadOnlyDictionary<Entity, IReadOnlyList<Movement>>
   > _undoHistory = new();
 
   public bool IsCleared
@@ -57,21 +57,23 @@ public sealed class GameStage
         .ToHashSet();
   }
 
-  public IEnumerable<IEnumerable<Movement>> MovePlayers(Direction direction)
+  public IReadOnlyDictionary<EntityId, IReadOnlyList<Movement>> MovePlayers(
+    Direction direction)
   {
-    var ret =
-      new[] {
-        ListEntitiesWithRule(Rule.Controllable)
+    var moves =
+      ListEntitiesWithRule(Rule.Controllable)
         .SelectMany(player =>
         {
           var playerTargetPos = PositionOffset(player.CurrentPos, direction);
-          if (!TryGetCellAt(playerTargetPos, out var playerTargetCellEnumerable))
+          if (!TryGetCellAt(playerTargetPos,
+                out var playerTargetCellEnumerable))
             return Enumerable.Empty<(Entity, Position, Position)>();
           var playerTargetCell = playerTargetCellEnumerable.ToImmutableList();
           if (playerTargetCell.Any(it => it.HasRule(Rule.Stop)))
           {
             return Enumerable.Empty<(Entity, Position, Position)>();
           }
+
           var pushable =
             playerTargetCell
               .Where(it => it.HasRule(Rule.Pushable))
@@ -80,6 +82,7 @@ public sealed class GameStage
           {
             return new[] { (player, player.CurrentPos, playerTargetPos) };
           }
+
           var pushTargetPos = PositionOffset(playerTargetPos, direction);
           if (!TryGetCellAt(pushTargetPos, out var pushTargetCell) ||
               !pushTargetCell.All(it =>
@@ -87,72 +90,82 @@ public sealed class GameStage
           {
             return Enumerable.Empty<(Entity, Position, Position)>();
           }
-          var playerTargetUpPos = playerTargetPos with { Y = playerTargetPos.Y + 1 };
+
+          var playerTargetUpPos =
+            playerTargetPos with { Y = playerTargetPos.Y + 1 };
           if (TryGetCellAt(playerTargetUpPos, out var playerTargetUpCell) &&
               playerTargetUpCell.Any(it => it.HasRule(Rule.Gravitational)))
           {
             return Enumerable.Empty<(Entity, Position, Position)>();
           }
 
-          var ret = new List<(Entity, Position, Position)>
+          var pushed = new List<(Entity, Position, Position)>
           {
             (player, player.CurrentPos, playerTargetPos)
           };
-          ret.AddRange(pushable.Select(it => (it, playerTargetPos, pushTargetPos)));
-          return ret;
-        }).ToImmutableList()
-        .Select(it =>
-        {
-          it.Item1.MoveToOrThrow(it.Item3);
-          return it;
-        }).ToImmutableList(),
-        FallGravitational().ToImmutableList(),
-      }.ToImmutableList();
-    if (0 >= ret.Sum(it => it.Count))
+          pushed.AddRange(pushable.Select(it =>
+            (it, playerTargetPos, pushTargetPos)));
+          return pushed;
+        }).ToImmutableList();
+
+    var paths = new Dictionary<Entity, List<Movement>>();
+    foreach (var (entity, from, to) in moves)
     {
-      return ret.Select(turn =>
-        turn.Select(mv => new Movement(mv.Item1.Id, mv.Item2, mv.Item3)));
+      entity.MoveToOrThrow(to);
+      AppendMovement(paths, entity, from, to);
     }
 
-    _moveHistory.Push(ret);
+    foreach (var (entity, from, to) in FallGravitational())
+    {
+      AppendMovement(paths, entity, from, to);
+    }
+
+    if (paths.Count <= 0)
+    {
+      return ImmutableDictionary<EntityId, IReadOnlyList<Movement>>.Empty;
+    }
+
+    var lockedPaths = paths.ToImmutableDictionary(
+      it => it.Key,
+      it => (IReadOnlyList<Movement>)it.Value.ToImmutableList()
+    );
+
+    _moveHistory.Push(lockedPaths);
     _undoHistory.Clear();
-    return ret.Select(turn => turn.Select(mv => new Movement(mv.Item1.Id, mv.Item2, mv.Item3)));
+    return ToMovementPaths(lockedPaths);
   }
 
-  public IEnumerable<IEnumerable<Movement>> Undo()
+  public IReadOnlyDictionary<EntityId, IReadOnlyList<Movement>> Undo()
   {
     if (!CanUndo)
     {
-      return Enumerable.Empty<IEnumerable<Movement>>();
+      return ImmutableDictionary<EntityId, IReadOnlyList<Movement>>.Empty;
     }
-    var undoing = _moveHistory.Pop().ToImmutableList();
+    var undoing = _moveHistory.Pop();
     _undoHistory.Push(undoing);
-    return undoing.Select(movements => movements.Select(mv =>
+    foreach (var (entity, path) in undoing)
     {
-      var (entity, from, to) = mv;
-      entity.MoveToOrThrow(from);
-      return new Movement(entity.Id, from, to);
-    }));
+      entity.MoveToOrThrow(path[0].From);
+    }
+    return ToMovementPaths(undoing);
   }
 
-  public IEnumerable<IEnumerable<Movement>> Redo()
+  public IReadOnlyDictionary<EntityId, IReadOnlyList<Movement>> Redo()
   {
     if (!CanRedo)
     {
-      return Enumerable.Empty<IEnumerable<Movement>>();
+      return ImmutableDictionary<EntityId, IReadOnlyList<Movement>>.Empty;
     }
-    var redoing = _undoHistory.Pop().ToImmutableList();
+    var redoing = _undoHistory.Pop();
     _moveHistory.Push(redoing);
-    return redoing.Select(movements => movements.Select(mv =>
+    foreach (var (entity, path) in redoing)
     {
-      var (entity, from, to) = mv;
-      entity.MoveToOrThrow(to);
-      return new Movement(entity.Id, from, to);
-    }));
+      entity.MoveToOrThrow(path[^1].To);
+    }
+    return ToMovementPaths(redoing);
   }
 
   public sealed record Movement(
-    EntityId Who,
     Position From,
     Position To
   );
@@ -200,6 +213,29 @@ public sealed class GameStage
     Key,
     Goal
   }
+
+  private static void AppendMovement(
+    IDictionary<Entity, List<Movement>> paths,
+    Entity entity,
+    Position from,
+    Position to
+  )
+  {
+    if (!paths.TryGetValue(entity, out var path))
+    {
+      path = new List<Movement>();
+      paths.Add(entity, path);
+    }
+    path.Add(new Movement(from, to));
+  }
+
+  private static IReadOnlyDictionary<EntityId, IReadOnlyList<Movement>> ToMovementPaths(
+    IReadOnlyDictionary<Entity, IReadOnlyList<Movement>> paths
+  ) =>
+    paths.ToImmutableDictionary(
+      kv => kv.Key.Id,
+      kv => (IReadOnlyList<Movement>)kv.Value.ToImmutableList()
+    );
 
   private IEnumerable<(Entity, Position, Position)> FallGravitational() =>
     ListEntitiesWithRule(Rule.Gravitational)

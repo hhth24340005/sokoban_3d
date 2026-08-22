@@ -225,14 +225,9 @@ public sealed class GameView : MonoBehaviour
     {
       undoButton.interactable = false;
       redoButton.interactable = false;
-      foreach (var turn in movements)
-      {
-        await turn.Select(mv =>
-        {
-          var (x, y, z) = mv.To;
-          return idToObj(mv.Who).MoveTo(new(x, y, z), ct1);
-        });
-      }
+      await movements
+        .Select(entry => PlayPathAsync(idToObj(entry.Key), entry.Value, ct1))
+        .ToImmutableList();
       undoButton.interactable = stage.CanUndo;
       redoButton.interactable = stage.CanRedo;
     };
@@ -291,14 +286,9 @@ public sealed class GameView : MonoBehaviour
     {
       undoButton.interactable = false;
       redoButton.interactable = false;
-      foreach (var turn in undone.Reverse())
-      {
-        await turn.Select(mv =>
-        {
-          var (x, y, z) = mv.From;
-          return idToObj(mv.Who).RewindTo(new Vector3(x, y, z), ct1);
-        });
-      }
+      await undone
+        .Select(entry => RewindPathAsync(idToObj(entry.Key), entry.Value, ct1))
+        .ToImmutableList();
       undoButton.interactable = stage.CanUndo;
       redoButton.interactable = stage.CanRedo;
     };
@@ -323,14 +313,9 @@ public sealed class GameView : MonoBehaviour
     {
       undoButton.interactable = false;
       redoButton.interactable = false;
-      foreach (var turn in redone)
-      {
-        await turn.Select(mv =>
-        {
-          var (x, y, z) = mv.To;
-          return idToObj(mv.Who).MoveTo(new(x, y, z), ct1);
-        });
-      }
+      await redone
+        .Select(entry => PlayPathAsync(idToObj(entry.Key), entry.Value, ct1))
+        .ToImmutableList();
       undoButton.interactable = stage.CanUndo;
       redoButton.interactable = stage.CanRedo;
     };
@@ -379,5 +364,31 @@ public sealed class GameView : MonoBehaviour
     return;
 
     void OnPerform(InputAction.CallbackContext ctx) => tcs.TrySetResult();
+  }
+
+  private static async UniTask PlayPathAsync(
+    StageObject stageObject,
+    IReadOnlyList<GameStage.Movement> path,
+    CancellationToken ct
+  )
+  {
+    foreach (var movement in path)
+    {
+      var (x, y, z) = movement.To;
+      await stageObject.MoveTo(new(x, y, z), ct);
+    }
+  }
+
+  private static async UniTask RewindPathAsync(
+    StageObject stageObject,
+    IReadOnlyList<GameStage.Movement> path,
+    CancellationToken ct
+  )
+  {
+    foreach (var movement in path.Reverse())
+    {
+      var (x, y, z) = movement.From;
+      await stageObject.RewindTo(new(x, y, z), ct);
+    }
   }
 }
