@@ -5,7 +5,7 @@ using UnityEngine;
 
 public abstract class TransitionView : MonoBehaviour
 {
-  public abstract Func<CancellationToken, UniTask> Cover();
+  public abstract Func<CancellationToken, UniTask> CoverInstant();
 
   public abstract UniTask<Func<CancellationToken, UniTask>> CoverAsync(CancellationToken ct);
 }

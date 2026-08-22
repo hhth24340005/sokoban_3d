@@ -4,7 +4,7 @@ using UnityEngine;
 
 public sealed class DynamicTilingCube : MonoBehaviour
 {
-  private static readonly int BaseMapST = Shader.PropertyToID("_BaseMap_ST");
+  private static readonly int BaseMapSt = Shader.PropertyToID("_BaseMap_ST");
 
   [SerializeField]
   private float repeatEvery = 1f;
@@ -32,11 +32,11 @@ public sealed class DynamicTilingCube : MonoBehaviour
     }.ToList()
     .ForEach(it =>
     {
-      (var renderers, (var x, var y)) = it;
+      var (renderers, (x, y)) = it;
       foreach (var renderer in renderers)
       {
         renderer.GetPropertyBlock(block);
-        block.SetVector(BaseMapST, new(x, y, 0f, 0f));
+        block.SetVector(BaseMapSt, new(x, y, 0f, 0f));
         renderer.SetPropertyBlock(block);
       }
     });

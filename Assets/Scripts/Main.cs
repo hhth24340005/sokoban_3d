@@ -2,9 +2,8 @@ using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
-static class Main
+internal static class Main
 {
   private static async UniTask MainAsync(
     Transform root,
@@ -13,12 +12,15 @@ static class Main
   )
   {
     var preferences = Preferences.Of(assets.DefaultPreferences);
-    root.CreateChild(assets.ApplicationEnterTransition, out var appEnterTransition);
-    var titleEnterFadeIn = appEnterTransition.Cover();
+    root.CreateChild(
+      assets.ApplicationEnterTransition,
+      out var appEnterTransition
+    );
+    var titleEnterFadeIn = appEnterTransition.CoverInstant();
     while (true)
     {
       ct.ThrowIfCancellationRequested();
-      (var stage, var gameFadeIn) =
+      var (stage, gameFadeIn) =
         await assets.TitleView.PlayAsync(
           parent: root,
           fadeIn: titleEnterFadeIn,
@@ -34,27 +36,31 @@ static class Main
           ct: ct
         );
     }
+    // ReSharper disable once FunctionNeverReturns
   }
 
   [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
   private static async void Boot()
   {
-    var assetRegistry = (AssetRegistry)await Resources.LoadAsync("AssetRegistry");
-    var rootObject = new GameObject("Root");
     try
     {
+      var assetRegistry =
+        (AssetRegistry)await Resources.LoadAsync("AssetRegistry");
+      var rootObject = new GameObject("Root");
       await MainAsync(
         rootObject.transform,
         assetRegistry,
         ct: Application.exitCancellationToken
       ).SuppressCancellationThrow();
     }
+    catch (Exception e)
+    {
+      Debug.LogError($"An exception was not handled: {e}");
+    }
     finally
     {
 #if UNITY_EDITOR
       UnityEditor.EditorApplication.isPlaying = false;
-#else
-      Application.Quit();
 #endif
     }
   }

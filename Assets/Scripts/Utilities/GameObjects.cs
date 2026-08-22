@@ -56,10 +56,10 @@ public static class GameObjects
   public static ScopedGameObject With<C>(
     this ScopedGameObject self,
     out C component,
-    bool thorwIfPrefab = true,
+    bool throwIfPrefab = true,
     bool allowDuplication = false
   ) where C : Component =>
-    new(self.GameObject.With(out component, thorwIfPrefab, allowDuplication));
+    new(self.GameObject.With(out component, throwIfPrefab, allowDuplication));
 
   // ===
 
@@ -102,7 +102,7 @@ public static class GameObjects
       ret = gameObject;
       gameObject.transform.SetParent(parent, worldPositionStays: false);
     }
-    if (setActive is bool active)
+    if (setActive is { } active)
     {
       ret.SetActive(active);
     }

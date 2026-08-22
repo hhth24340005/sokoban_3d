@@ -12,7 +12,10 @@ public class PlayerStageObject : StageObject
   {
     var moveTask = base.MoveTo(target, ct);
     var rotateTask = UniTask.CompletedTask;
-    if (transform.localPosition.x != target.x || transform.localPosition.z != target.z)
+    if (
+      !Mathf.Approximately(transform.localPosition.x, target.x) ||
+        !Mathf.Approximately(transform.localPosition.z, target.z)
+    )
     {
       var lookAt = target;
       lookAt.y = transform.localPosition.y;
@@ -30,7 +33,10 @@ public class PlayerStageObject : StageObject
   {
     var moveTask = base.RewindTo(target, ct);
     var rotateTask = UniTask.CompletedTask;
-    if (transform.localPosition.x != target.x || transform.localPosition.z != target.z)
+    if (
+      !Mathf.Approximately(transform.localPosition.x, target.x) ||
+        !Mathf.Approximately(transform.localPosition.z, target.z)
+    )
     {
       var lookAt = target;
       lookAt.y = transform.localPosition.y;

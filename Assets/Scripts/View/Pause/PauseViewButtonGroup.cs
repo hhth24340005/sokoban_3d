@@ -24,7 +24,7 @@ public sealed class PauseViewButtonGroup : MonoBehaviour
   [SerializeField]
   private float fadeOutSeconds = 0.4f;
 
-  private Vector3? originalPosition = null;
+  private Vector3? _originalPosition;
 
   public async UniTask FadeInAsync(CancellationToken ct)
   {
@@ -33,11 +33,11 @@ public sealed class PauseViewButtonGroup : MonoBehaviour
       group.interactable = false;
       group.blocksRaycasts = false;
 
-      originalPosition ??= transform.localPosition;
+      _originalPosition ??= transform.localPosition;
       transform.localPosition -= positionOffset;
       var moveTask =
         transform.DOLocalMove(
-          endValue: (Vector3)originalPosition,
+          endValue: (Vector3)_originalPosition,
           duration: fadeInSeconds
         ).SetEase(Ease.OutQuad)
         .WithCancellation(ct);
@@ -62,10 +62,10 @@ public sealed class PauseViewButtonGroup : MonoBehaviour
   {
     group.interactable = false;
     group.blocksRaycasts = false;
-    originalPosition ??= transform.localPosition;
+    _originalPosition ??= transform.localPosition;
     var moveTask =
       transform.DOLocalMove(
-        endValue: (Vector3)originalPosition - positionOffset,
+        endValue: (Vector3)_originalPosition - positionOffset,
         duration: fadeOutSeconds
       ).SetEase(Ease.OutQuad)
       .WithCancellation(ct);

@@ -22,11 +22,11 @@ public sealed class TitleViewButtonAnimator : MonoBehaviour, IPointerEnterHandle
   [SerializeField]
   private float animationSeconds = 0.1f;
 
-  private CancellationTokenSource cts = null;
+  private CancellationTokenSource _cts;
 
-  private Vector3? originalScale = null;
+  private Vector3? _originalScale;
 
-  private Color? originalColor = null;
+  private Color? _originalColor;
 
   public void OnPointerEnter(PointerEventData eventData)
   {
@@ -35,19 +35,19 @@ public sealed class TitleViewButtonAnimator : MonoBehaviour, IPointerEnterHandle
       return;
     }
 
-    cts?.Cancel();
+    _cts?.Cancel();
     var newCts = new CancellationTokenSource();
-    cts = newCts;
-    originalScale ??= text.transform.localScale;
+    _cts = newCts;
+    _originalScale ??= text.transform.localScale;
 
     text.transform
       .DOScale(
-        endValue: (Vector3)originalScale * scaleMultiplier,
+        endValue: (Vector3)_originalScale * scaleMultiplier,
         duration: animationSeconds
       ).WithCancellation(newCts.Token)
       .Forget();
 
-    originalColor ??= text.color;
+    _originalColor ??= text.color;
     DOTween.To(
       getter: () => text.color,
       setter: x => text.color = x,
@@ -59,23 +59,23 @@ public sealed class TitleViewButtonAnimator : MonoBehaviour, IPointerEnterHandle
 
   public void OnPointerExit(PointerEventData eventData)
   {
-    cts?.Cancel();
+    _cts?.Cancel();
     var newCts = new CancellationTokenSource();
-    cts = newCts;
+    _cts = newCts;
 
-    originalScale ??= text.transform.localScale;
+    _originalScale ??= text.transform.localScale;
     text.transform
       .DOScale(
-        endValue: (Vector3)originalScale,
+        endValue: (Vector3)_originalScale,
         duration: animationSeconds
       ).WithCancellation(newCts.Token)
       .Forget();
 
-    originalColor ??= text.color;
+    _originalColor ??= text.color;
     DOTween.To(
       getter: () => text.color,
       setter: x => text.color = x,
-      endValue: (Color)originalColor,
+      endValue: (Color)_originalColor,
       duration: animationSeconds
     ).WithCancellation(newCts.Token)
     .Forget();

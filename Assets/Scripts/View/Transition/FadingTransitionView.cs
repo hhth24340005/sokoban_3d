@@ -21,7 +21,7 @@ public sealed class FadingTransitionView : TransitionView
   [SerializeField]
   private Ease fadeOutEase = Ease.InOutSine;
 
-  public override Func<CancellationToken, UniTask> Cover()
+  public override Func<CancellationToken, UniTask> CoverInstant()
   {
     overlay.DOKill();
     overlay.gameObject.SetActive(true);

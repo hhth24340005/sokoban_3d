@@ -33,7 +33,7 @@ public sealed class GameView : MonoBehaviour
     using (parent.CreateChild(this, out var instantiated, copyIfExisting: false))
     using (instantiated.gameObject.CreateChild(preset.StageCameraPrefab, out var stageCamera))
     {
-      (var idToObj, var stage) = CreateStage(instantiated.transform, preset);
+      var (idToObj, stage) = CreateStage(instantiated.transform, preset);
       var bounds = new Bounds(center: preset.Center, size: preset.Size);
       stageCamera.Init(bounds);
 
@@ -66,7 +66,7 @@ public sealed class GameView : MonoBehaviour
               (id) => idToObj[id],
               cts.Token
             );
-          (_, var anim) =
+          var (_, anim) =
             await UniTask.WhenAny<Func<CancellationToken, UniTask<Func<CancellationToken, UniTask>>>>(
               returnTask,
               clearTask
@@ -96,7 +96,7 @@ public sealed class GameView : MonoBehaviour
     var objToData =
       prefabToPos.SelectMany((kv, type) =>
       {
-        (var prefab, var positions) = kv;
+        var (prefab, positions) = kv;
         var typeId = new GameStage.TypeId(type);
         typeToRules.Add(typeId, prefab.Rules);
 
@@ -116,9 +116,9 @@ public sealed class GameView : MonoBehaviour
       idToObj.Join(
         inner: objToData,
         outerKeySelector: idToPrefab => idToPrefab.Value,
-        innerKeySelector: prefabToPos => prefabToPos.Key,
+        innerKeySelector: prefabToPos1 => prefabToPos1.Key,
         resultSelector:
-          (idToPrefab, prefabToPos) => new { idToPrefab.Key, prefabToPos.Value }
+          (idToPrefab, prefabToPos1) => new { idToPrefab.Key, prefabToPos1.Value }
       ).ToImmutableDictionary(it => it.Key, it => it.Value);
     var size = preset.Size;
     var stage =
@@ -194,7 +194,7 @@ public sealed class GameView : MonoBehaviour
       if (stage.IsCleared)
       {
         transitionParent.CreateChild(returnTransitionPrefab, out var transition);
-        return async (ct) => await transition.CoverAsync(ct);
+        return async (ct1) => await transition.CoverAsync(ct1);
       }
     }
   }
@@ -221,7 +221,7 @@ public sealed class GameView : MonoBehaviour
     undoButton.interactable = stage.CanUndo;
     redoButton.interactable = stage.CanRedo;
 
-    return async (idToObj, ct) =>
+    return async (idToObj, ct1) =>
     {
       undoButton.interactable = false;
       redoButton.interactable = false;
@@ -229,8 +229,8 @@ public sealed class GameView : MonoBehaviour
       {
         await turn.Select(mv =>
         {
-          (var x, var y, var z) = mv.To;
-          return idToObj(mv.Who).MoveTo(new(x, y, z), ct);
+          var (x, y, z) = mv.To;
+          return idToObj(mv.Who).MoveTo(new(x, y, z), ct1);
         });
       }
       undoButton.interactable = stage.CanUndo;
@@ -247,9 +247,7 @@ public sealed class GameView : MonoBehaviour
   )
   {
     var tcs = new UniTaskCompletionSource<GameStage.Direction>();
-    using var _ = ct.Register(() => tcs.TrySetCanceled());
-    Action<InputAction.CallbackContext> CallbackOf(GameStage.Direction direction) =>
-      (ctx) => tcs.TrySetResult(direction);
+    await using var _ = ct.Register(() => tcs.TrySetCanceled());
     var forwardCb = CallbackOf(GameStage.Direction.PlusZ);
     var rightCb = CallbackOf(GameStage.Direction.PlusX);
     var backwardCb = CallbackOf(GameStage.Direction.MinusZ);
@@ -269,6 +267,9 @@ public sealed class GameView : MonoBehaviour
       moveBackward.performed -= backwardCb;
       moveLeft.performed -= leftCb;
     }
+
+    Action<InputAction.CallbackContext> CallbackOf(GameStage.Direction direction) =>
+      _ => tcs.TrySetResult(direction);
   }
 
   private async UniTask<
@@ -286,7 +287,7 @@ public sealed class GameView : MonoBehaviour
     var undone = stage.Undo();
     undoButton.interactable = stage.CanUndo;
     redoButton.interactable = stage.CanRedo;
-    return async (idToObj, ct) =>
+    return async (idToObj, ct1) =>
     {
       undoButton.interactable = false;
       redoButton.interactable = false;
@@ -294,8 +295,8 @@ public sealed class GameView : MonoBehaviour
       {
         await turn.Select(mv =>
         {
-          (var x, var y, var z) = mv.From;
-          return idToObj(mv.Who).RewindTo(new(x, y, z), ct);
+          var (x, y, z) = mv.From;
+          return idToObj(mv.Who).RewindTo(new Vector3(x, y, z), ct1);
         });
       }
       undoButton.interactable = stage.CanUndo;
@@ -318,7 +319,7 @@ public sealed class GameView : MonoBehaviour
     var redone = stage.Redo();
     undoButton.interactable = stage.CanUndo;
     redoButton.interactable = stage.CanRedo;
-    return async (idToObj, ct) =>
+    return async (idToObj, ct1) =>
     {
       undoButton.interactable = false;
       redoButton.interactable = false;
@@ -326,8 +327,8 @@ public sealed class GameView : MonoBehaviour
       {
         await turn.Select(mv =>
         {
-          (var x, var y, var z) = mv.To;
-          return idToObj(mv.Who).MoveTo(new(x, y, z), ct);
+          var (x, y, z) = mv.To;
+          return idToObj(mv.Who).MoveTo(new(x, y, z), ct1);
         });
       }
       undoButton.interactable = stage.CanUndo;
@@ -352,7 +353,7 @@ public sealed class GameView : MonoBehaviour
           continue;
         case PauseView.Result.ReturnToTitle:
           parent.CreateChild(returnTransitionPrefab, out var transition);
-          return async (ct) => await transition.CoverAsync(ct);
+          return async ct1 => await transition.CoverAsync(ct1);
         default:
           throw new Exception($"Unknown {typeof(PauseView.Result)} type >.<");
       }
@@ -365,8 +366,7 @@ public sealed class GameView : MonoBehaviour
   )
   {
     var tcs = new UniTaskCompletionSource();
-    using var _ = ct.Register(() => tcs.TrySetCanceled());
-    void OnPerform(InputAction.CallbackContext ctx) => tcs.TrySetResult();
+    await using var _ = ct.Register(() => tcs.TrySetCanceled());
     inputAction.Pause.performed += OnPerform;
     try
     {
@@ -376,5 +376,8 @@ public sealed class GameView : MonoBehaviour
     {
       inputAction.Pause.performed -= OnPerform;
     }
+    return;
+
+    void OnPerform(InputAction.CallbackContext ctx) => tcs.TrySetResult();
   }
 }

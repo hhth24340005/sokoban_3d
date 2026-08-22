@@ -4,9 +4,9 @@ using UnityEngine;
 [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
 public sealed class Pyramid : MonoBehaviour
 {
-  public static readonly Vector3 v0 = Vector3.zero;
+  private static readonly Vector3 V0 = Vector3.zero;
 
-  public static readonly Vector3 v1 = Vector3.right;
+  private static readonly Vector3 V1 = Vector3.right;
 
   [SerializeField]
   private Vector3 v2;
@@ -65,7 +65,7 @@ public sealed class Pyramid : MonoBehaviour
 
   private void UpdateMesh()
   {
-    (var corners, var faces) = TriangleVerticesOf();
+    var (corners, faces) = TriangleVerticesOf();
     var vertices = new Vector3[corners.Length * 3];
     var indices = Enumerable.Range(0, corners.Length * 3).ToArray();
     foreach (var index in indices)
@@ -86,9 +86,9 @@ public sealed class Pyramid : MonoBehaviour
 
   private (Vector3[] corners, int[] faces) TriangleVerticesOf()
   {
-    var corners = new[] { v0, v1, V2, V3 }.Select(it => it - meshBase).ToArray();
+    var corners = new[] { V0, V1, V2, V3 }.Select(it => it - meshBase).ToArray();
     var indices = new[] { 0, 1, 2, 0, 2, 3, 0, 3, 1, 1, 3, 2 };
-    if (0f < Vector3.Dot(Vector3.Cross(v1 - v0, V2 - v0), V3 - v0))
+    if (0f < Vector3.Dot(Vector3.Cross(V1 - V0, V2 - V0), V3 - V0))
     {
       for (var i = 0; i < indices.Length; i += 3)
       {

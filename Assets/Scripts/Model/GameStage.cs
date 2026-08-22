@@ -6,11 +6,15 @@ using System.Linq;
 
 public sealed class GameStage
 {
-  private readonly (int x, int y, int z) size;
-  private readonly List<Entity> sortedEntities;
-  private readonly ISet<(TypeId, Rule)> rules;
-  private readonly Stack<IEnumerable<IEnumerable<(Entity who, Position from, Position to)>>> moveHistory = new();
-  private readonly Stack<IEnumerable<IEnumerable<(Entity who, Position from, Position to)>>> undoHistory = new();
+  private readonly (int x, int y, int z) _size;
+  private readonly List<Entity> _sortedEntities;
+  private readonly ISet<(TypeId, Rule)> _rules;
+  private readonly Stack<
+    IEnumerable<IEnumerable<(Entity who, Position from, Position to)>>
+  > _moveHistory = new();
+  private readonly Stack<
+    IEnumerable<IEnumerable<(Entity who, Position from, Position to)>>
+  > _undoHistory = new();
 
   public bool IsCleared
   {
@@ -29,9 +33,9 @@ public sealed class GameStage
     }
   }
 
-  public bool CanUndo => 0 < moveHistory.Count;
+  public bool CanUndo => 0 < _moveHistory.Count;
 
-  public bool CanRedo => 0 < undoHistory.Count;
+  public bool CanRedo => 0 < _undoHistory.Count;
 
   public GameStage(
     (int x, int y, int z) size,
@@ -39,15 +43,15 @@ public sealed class GameStage
     IReadOnlyDictionary<TypeId, IReadOnlyCollection<Rule>> typeData
   )
   {
-    this.size = size;
-    sortedEntities =
+    _size = size;
+    _sortedEntities =
       entityData.Select(kv =>
       {
-        (var id, (var type, var pos)) = kv;
+        var (id, (type, pos)) = kv;
         return new Entity(this, id, type, pos);
       }).OrderBy(x => x)
       .ToList();
-    rules =
+    _rules =
       typeData
         .SelectMany(kv => kv.Value.Distinct().Select(rule => (kv.Key, rule)))
         .ToHashSet();
@@ -56,63 +60,62 @@ public sealed class GameStage
   public IEnumerable<IEnumerable<Movement>> MovePlayers(Direction direction)
   {
     var ret =
-      new List<IReadOnlyList<(Entity, Position, Position)>> {
+      new[] {
         ListEntitiesWithRule(Rule.Controllable)
         .SelectMany(player =>
         {
           var playerTargetPos = PositionOffset(player.CurrentPos, direction);
-          if (TryGetCellAt(playerTargetPos, out var playerTargetCell))
+          if (!TryGetCellAt(playerTargetPos, out var playerTargetCellEnumerable))
+            return Enumerable.Empty<(Entity, Position, Position)>();
+          var playerTargetCell = playerTargetCellEnumerable.ToImmutableList();
+          if (playerTargetCell.Any(it => it.HasRule(Rule.Stop)))
           {
-            if (playerTargetCell.Any(it => it.HasRule(Rule.Stop)))
-            {
-              return Enumerable.Empty<(Entity, Position, Position)>();
-            }
-            var pushables =
-              playerTargetCell
-                .Where(it => it.HasRule(Rule.Pushable))
-                .ToImmutableList();
-            if (pushables.IsEmpty)
-            {
-              return new List<(Entity, Position, Position)>
-              {
-                (player, player.CurrentPos, playerTargetPos)
-              };
-            }
-            var pushTargetPos = PositionOffset(playerTargetPos, direction);
-            if (
-              TryGetCellAt(pushTargetPos, out var pushTargetCell) &&
-              pushTargetCell.All(it => !it.HasRule(Rule.Stop) && !it.HasRule(Rule.Pushable))
-            )
-            {
-              var playerTargetUpPos = playerTargetPos with { Y = playerTargetPos.Y + 1 };
-              if (
-                !TryGetCellAt(playerTargetUpPos, out var playerTargetUpCell) ||
-                playerTargetUpCell.All(it => !it.HasRule(Rule.Gravitational))
-              )
-              {
-                var ret = new List<(Entity, Position, Position)>
-                {
-                  (player, player.CurrentPos, playerTargetPos)
-                };
-                ret.AddRange(pushables.Select(it => (it, playerTargetPos, pushTargetPos)));
-                return ret;
-              }
-            }
+            return Enumerable.Empty<(Entity, Position, Position)>();
           }
-          return Enumerable.Empty<(Entity, Position, Position)>();
+          var pushable =
+            playerTargetCell
+              .Where(it => it.HasRule(Rule.Pushable))
+              .ToImmutableList();
+          if (pushable.IsEmpty)
+          {
+            return new[] { (player, player.CurrentPos, playerTargetPos) };
+          }
+          var pushTargetPos = PositionOffset(playerTargetPos, direction);
+          if (!TryGetCellAt(pushTargetPos, out var pushTargetCell) ||
+              !pushTargetCell.All(it =>
+                !it.HasRule(Rule.Stop) && !it.HasRule(Rule.Pushable)))
+          {
+            return Enumerable.Empty<(Entity, Position, Position)>();
+          }
+          var playerTargetUpPos = playerTargetPos with { Y = playerTargetPos.Y + 1 };
+          if (TryGetCellAt(playerTargetUpPos, out var playerTargetUpCell) &&
+              playerTargetUpCell.Any(it => it.HasRule(Rule.Gravitational)))
+          {
+            return Enumerable.Empty<(Entity, Position, Position)>();
+          }
+
+          var ret = new List<(Entity, Position, Position)>
+          {
+            (player, player.CurrentPos, playerTargetPos)
+          };
+          ret.AddRange(pushable.Select(it => (it, playerTargetPos, pushTargetPos)));
+          return ret;
         }).ToImmutableList()
         .Select(it =>
         {
           it.Item1.MoveToOrThrow(it.Item3);
           return it;
         }).ToImmutableList(),
-        FallGravitationals().ToImmutableList(),
+        FallGravitational().ToImmutableList(),
       }.ToImmutableList();
-    if (0 < ret.Sum(it => it.Count))
+    if (0 >= ret.Sum(it => it.Count))
     {
-      moveHistory.Push(ret);
-      undoHistory.Clear();
+      return ret.Select(turn =>
+        turn.Select(mv => new Movement(mv.Item1.Id, mv.Item2, mv.Item3)));
     }
+
+    _moveHistory.Push(ret);
+    _undoHistory.Clear();
     return ret.Select(turn => turn.Select(mv => new Movement(mv.Item1.Id, mv.Item2, mv.Item3)));
   }
 
@@ -122,11 +125,11 @@ public sealed class GameStage
     {
       return Enumerable.Empty<IEnumerable<Movement>>();
     }
-    var undoing = moveHistory.Pop();
-    undoHistory.Push(undoing);
+    var undoing = _moveHistory.Pop().ToImmutableList();
+    _undoHistory.Push(undoing);
     return undoing.Select(movements => movements.Select(mv =>
     {
-      (var entity, var from, var to) = mv;
+      var (entity, from, to) = mv;
       entity.MoveToOrThrow(from);
       return new Movement(entity.Id, from, to);
     }));
@@ -138,11 +141,11 @@ public sealed class GameStage
     {
       return Enumerable.Empty<IEnumerable<Movement>>();
     }
-    var redoing = undoHistory.Pop();
-    moveHistory.Push(redoing);
+    var redoing = _undoHistory.Pop().ToImmutableList();
+    _moveHistory.Push(redoing);
     return redoing.Select(movements => movements.Select(mv =>
     {
-      (var entity, var from, var to) = mv;
+      var (entity, from, to) = mv;
       entity.MoveToOrThrow(to);
       return new Movement(entity.Id, from, to);
     }));
@@ -156,26 +159,26 @@ public sealed class GameStage
 
   public readonly struct EntityId : IEquatable<EntityId>
   {
-    private readonly int identity;
+    private readonly int _identity;
 
     public EntityId(int identity)
     {
-      this.identity = identity;
+      this._identity = identity;
     }
 
-    public bool Equals(EntityId other) => identity == other.identity;
+    public bool Equals(EntityId other) => _identity == other._identity;
   }
 
   public readonly struct TypeId : IEquatable<TypeId>
   {
-    private readonly int identity;
+    private readonly int _identity;
 
     public TypeId(int identity)
     {
-      this.identity = identity;
+      this._identity = identity;
     }
 
-    public bool Equals(TypeId other) => identity == other.identity;
+    public bool Equals(TypeId other) => _identity == other._identity;
   }
 
   public sealed record Position(int X, int Y, int Z);
@@ -195,10 +198,10 @@ public sealed class GameStage
     Pushable,
     Gravitational,
     Key,
-    Goal,
+    Goal
   }
 
-  private IEnumerable<(Entity, Position, Position)> FallGravitationals() =>
+  private IEnumerable<(Entity, Position, Position)> FallGravitational() =>
     ListEntitiesWithRule(Rule.Gravitational)
       .Select(entity =>
       {
@@ -237,17 +240,17 @@ public sealed class GameStage
       cell = null;
       return false;
     }
-    cell = new Cell(pos, sortedEntities);
+    cell = new Cell(pos, _sortedEntities);
     return true;
   }
 
   private IEnumerable<Entity> ListEntitiesWithRule(Rule rule) =>
-    sortedEntities.Where(it => it.HasRule(rule));
+    _sortedEntities.Where(it => it.HasRule(rule));
 
   private bool IsOutOfBounds(Position pos) =>
-    pos.X < 0 || size.x <= pos.X ||
-    pos.Y < 0 || size.y <= pos.Y ||
-    pos.Z < 0 || size.z <= pos.Z;
+    pos.X < 0 || _size.x <= pos.X ||
+    pos.Y < 0 || _size.y <= pos.Y ||
+    pos.Z < 0 || _size.z <= pos.Z;
 
   private Position PositionOffset(Position pos, Direction direction) =>
     direction switch
@@ -263,20 +266,20 @@ public sealed class GameStage
   {
     public EntityId Id { get; }
     public Position CurrentPos { get; private set; }
-    private TypeId type;
-    private readonly GameStage outer;
+    private readonly TypeId _type;
+    private readonly GameStage _outer;
 
     public Entity(GameStage outer, EntityId id, TypeId type, Position currentPos)
     {
       Id = id;
       CurrentPos = currentPos;
-      this.outer = outer;
-      this.type = type;
+      this._outer = outer;
+      this._type = type;
     }
 
     public void MoveToOrThrow(Position target)
     {
-      if (outer.IsOutOfBounds(target))
+      if (_outer.IsOutOfBounds(target))
       {
         throw new InvalidOperationException();
       }
@@ -285,10 +288,10 @@ public sealed class GameStage
         return;
       }
       CurrentPos = target;
-      outer.sortedEntities.Sort();
+      _outer._sortedEntities.Sort();
     }
 
-    public bool HasRule(Rule rule) => outer.rules.Contains((type, rule));
+    public bool HasRule(Rule rule) => _outer._rules.Contains((_type, rule));
 
     public int CompareTo(Entity other) => CompareTo(other.CurrentPos);
 
@@ -296,25 +299,25 @@ public sealed class GameStage
 
     private int FlatPos(Position pos) =>
       pos.X +
-      pos.Y * outer.size.x +
-      pos.Z * outer.size.x * outer.size.y;
+      pos.Y * _outer._size.x +
+      pos.Z * _outer._size.x * _outer._size.y;
   }
 
   private class Cell : IEnumerable<Entity>
   {
-    private Position pos;
-    private IReadOnlyList<Entity> entities;
+    private readonly Position _pos;
+    private readonly IReadOnlyList<Entity> _entities;
 
     public Cell(Position pos, IReadOnlyList<Entity> entities)
     {
-      this.pos = pos;
-      this.entities = entities;
+      this._pos = pos;
+      this._entities = entities;
     }
 
     public IEnumerator<Entity> GetEnumerator()
     {
       var start = SearchLower();
-      return entities.Skip(start).TakeWhile(x => x.CompareTo(pos) == 0).GetEnumerator();
+      return _entities.Skip(start).TakeWhile(x => x.CompareTo(_pos) == 0).GetEnumerator();
     }
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
@@ -322,11 +325,11 @@ public sealed class GameStage
     private int SearchLower()
     {
       var low = 0;
-      var high = entities.Count;
+      var high = _entities.Count;
       while (low < high)
       {
         var mid = (low + high) / 2;
-        if (entities[mid].CompareTo(pos) < 0)
+        if (_entities[mid].CompareTo(_pos) < 0)
         {
           low = mid + 1;
         }

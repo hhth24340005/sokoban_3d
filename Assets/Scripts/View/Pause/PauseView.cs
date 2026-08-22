@@ -85,16 +85,16 @@ public sealed class PauseView : MonoBehaviour
     cts.Cancel();
 
     tcs.TrySetResult(
-      async (ct) =>
+      async (innerCt) =>
       {
-        await buttonGroup.FadeOutAsync(ct);
+        await buttonGroup.FadeOutAsync(innerCt);
 
         await DOTween.To(
           getter: () => overlay.alpha,
           setter: x => overlay.alpha = x,
           endValue: 0f,
           duration: fadeOutSeconds
-        ).WithCancellation(ct);
+        ).WithCancellation(innerCt);
 
         return new Result.Resume();
       }
@@ -106,19 +106,22 @@ public sealed class PauseView : MonoBehaviour
     CancellationToken ct
   )
   {
-    var buttonTask = buttonGroup.WaitForResumeButtonClickAsync(ct);
+    var resumeButtonTask = buttonGroup.WaitForResumeButtonClickAsync(ct);
     var tcs = new UniTaskCompletionSource();
-    void OnPerform(InputAction.CallbackContext ctx) => tcs.TrySetResult();
-    using var _ = ct.Register(() => tcs.TrySetCanceled(ct));
+    await using var _ = ct.Register(() => tcs.TrySetCanceled(ct));
     try
     {
       inputAction.Cancel.performed += OnPerform;
-      await tcs.Task;
+      await UniTask.WhenAny(tcs.Task, resumeButtonTask);
     }
     finally
     {
       inputAction.Cancel.performed -= OnPerform;
     }
+
+    return;
+
+    void OnPerform(InputAction.CallbackContext ctx) => tcs.TrySetResult();
   }
 
   private async UniTask WaitForReturnToTitleAction(
@@ -127,7 +130,9 @@ public sealed class PauseView : MonoBehaviour
   )
   {
     await buttonGroup.WaitForReturnButtonClickAsync(ct);
-    tcs.TrySetResult((ct) => UniTask.FromResult((Result)new Result.ReturnToTitle()));
+    tcs.TrySetResult(_ =>
+      UniTask.FromResult<Result>(new Result.ReturnToTitle())
+    );
   }
 
   public abstract record Result
