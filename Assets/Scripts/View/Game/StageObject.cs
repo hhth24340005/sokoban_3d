@@ -13,10 +13,19 @@ public class StageObject : MonoBehaviour
   private List<GameStage.Rule> rules = new();
 
   [SerializeField]
-  private float animationSeconds = 0.2f;
+  private float rewindDurationMultiplier = 0.5f;
 
   [SerializeField]
-  private float rewindDurationMultiplier = 0.5f;
+  private float walkSeconds = 0.2f;
+
+  [SerializeField]
+  protected AudioSource walkSound;
+
+  [SerializeField]
+  private Ease walkEase = Ease.OutQuad;
+
+  [SerializeField]
+  private Ease walkEaseRewind = Ease.InQuad;
 
   [SerializeField]
   private float gravityAcceleration = 9.8f;
@@ -27,49 +36,54 @@ public class StageObject : MonoBehaviour
   [SerializeField]
   private float climbDurationMultiplier = 0.6f;
 
-  [SerializeField]
-  private Ease ease = Ease.OutQuad;
-
-  [SerializeField]
-  private Ease easeRewind = Ease.InQuad;
-
-  private Tween _moveTween;
+  private Tween _tween;
 
   public IReadOnlyCollection<GameStage.Rule> Rules => rules.Distinct().ToImmutableList();
 
   public async UniTask WalkAsync(
-    GameStage.Movement movement,
+    ((float x, float z) past, (float x, float z) current) movement,
     bool rewind,
     CancellationToken ct
   )
   {
-    var target = TargetOf(movement, rewind);
+    if (walkSound)
+    {
+      walkSound.Play();
+    }
     await AnimateAsync(
-      () => transform
-        .DOLocalMove(target, DurationOf(animationSeconds, rewind))
-        .SetEase(rewind ? easeRewind : ease),
-      target,
+      () => Walk(movement, rewind),
       ct
     );
   }
 
   public async UniTask FallAsync(
-    GameStage.Movement movement,
+    (float pastY, float currentY) movement,
     bool rewind,
     CancellationToken ct
   )
   {
-    var start = transform.localPosition;
-    var target = TargetOf(movement, rewind);
+    var (pastY, currentY) = (movement.pastY, movement.currentY);
+    var target =
+      new Vector3(
+        transform.localPosition.x,
+        rewind ? pastY : currentY,
+        transform.localPosition.z
+      );
     await AnimateAsync(
-      () => ArcY(start.y, target.y, DurationMultiplier(rewind)),
-      target,
+      () => (
+        FreeFall(
+          transform.localPosition.y,
+          target.y,
+          DurationMultiplierOf(rewind)
+        ),
+        target
+      ),
       ct
     );
   }
 
   public async UniTask ClimbAsync(
-    GameStage.Movement movement,
+    (Vector3 past, Vector3 current) movement,
     bool rewind,
     CancellationToken ct
   )
@@ -79,53 +93,92 @@ public class StageObject : MonoBehaviour
       walkSound.Play();
     }
     var start = transform.localPosition;
-    var target = TargetOf(movement, rewind);
+    var target = rewind ? movement.past : movement.current;
     var apexY = Mathf.Max(start.y, target.y) + climbApexOffset;
-    var multiplier = DurationMultiplier(rewind) * climbDurationMultiplier;
-    var total =
-      (ArcSeconds(start.y, apexY) + ArcSeconds(apexY, target.y)) * multiplier;
+    var multiplier = DurationMultiplierOf(rewind) * climbDurationMultiplier;
+    var arc = MoveArc(apexY, target.y, multiplier);
     await AnimateAsync(
-      () => DOTween.Sequence()
-        .Append(ArcY(start.y, apexY, multiplier))
-        .Append(ArcY(apexY, target.y, multiplier))
-        .Insert(0, transform.DOLocalMoveX(target.x, total).SetEase(Ease.Linear))
-        .Insert(0, transform.DOLocalMoveZ(target.z, total).SetEase(Ease.Linear)),
-      target,
+      () => (
+        DOTween.Sequence()
+          .Join(arc)
+          .Join(LinearMoveXZ((target.x, target.z), arc.Duration())),
+        target
+      ),
       ct
     );
   }
 
-  private Tween ArcY(float fromY, float toY, float multiplier) =>
-    transform
-      .DOLocalMoveY(toY, ArcSeconds(fromY, toY) * multiplier)
-      .SetEase(fromY < toY ? Ease.OutQuad : Ease.InQuad);
-
-  private float ArcSeconds(float fromY, float toY) =>
-    Mathf.Sqrt(2 * Mathf.Abs(toY - fromY) / gravityAcceleration);
-
-  protected float DurationOf(float seconds, bool rewind) =>
-    seconds * DurationMultiplier(rewind);
-
-  protected float DurationMultiplier(bool rewind) =>
-    rewind ? rewindDurationMultiplier : 1f;
-
-  protected static Vector3 TargetOf(GameStage.Movement movement, bool rewind)
+  protected async UniTask AnimateAsync(
+    Func<(Tween, Vector3 target)> animation,
+    CancellationToken ct)
   {
-    var (x, y, z) = rewind ? movement.From : movement.To;
-    return new Vector3(x, y, z);
-  }
-
-  protected async UniTask AnimateAsync(Func<Tween> tween, Vector3 target, CancellationToken ct)
-  {
-    _moveTween?.Kill();
+    _tween?.Kill();
+    var (tween, target) = animation();
     try
     {
-      _moveTween = tween();
-      await _moveTween.WithCancellation(ct);
+      _tween = tween;
+      await _tween.WithCancellation(ct);
     }
     finally
     {
       transform.localPosition = target;
     }
   }
+
+  protected Tween LinearMoveXZ((float x, float z) target, float duration) =>
+    DOTween.Sequence()
+      .Join(
+        transform.DOLocalMoveX(target.x, duration).SetEase(Ease.Linear)
+      ).Join(
+        transform.DOLocalMoveZ(target.z, duration).SetEase(Ease.Linear)
+      );
+
+  protected (Tween, Vector3) Walk(
+    ((float x, float z) past, (float x, float z) current) movement,
+    bool rewind
+  )
+  {
+    var targetX = rewind ? movement.past.x : movement.current.x;
+    var targetZ = rewind ? movement.past.z : movement.current.z;
+    var tween =
+      DOTween.Sequence()
+        .Append(
+          transform
+            .DOLocalMoveX(targetX, walkSeconds * DurationMultiplierOf(rewind))
+            .SetEase(rewind ? walkEaseRewind : walkEase)
+        ).Join(
+          transform
+            .DOLocalMoveZ(targetZ, walkSeconds * DurationMultiplierOf(rewind))
+            .SetEase(rewind ? walkEaseRewind : walkEase)
+        );
+    return (tween, new Vector3(targetX, transform.localPosition.y, targetZ));
+  }
+
+  private Tween FreeFall(
+    float fromY,
+    float toY,
+    float durationMultiplier
+  )
+  {
+    return
+      transform
+        .DOLocalMoveY(toY,
+          FreeFallSeconds(fromY, toY) * durationMultiplier)
+        .SetEase(fromY < toY ? Ease.OutQuad : Ease.InQuad);
+  }
+
+  protected Tween MoveArc(
+    float apex,
+    float target,
+    float durationMultiplier
+  ) => DOTween.Sequence()
+    .Append(FreeFall(transform.localPosition.y, apex, durationMultiplier))
+    .Append(FreeFall(apex, target, durationMultiplier));
+
+  private float FreeFallSeconds(float y0, float y1) =>
+    Mathf.Sqrt(2 * Mathf.Abs(y1 - y0) / gravityAcceleration);
+
+  private float DurationMultiplierOf(bool rewind) =>
+    rewind ? rewindDurationMultiplier : 1f;
+
 }

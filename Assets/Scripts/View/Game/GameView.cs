@@ -475,13 +475,23 @@ public sealed class GameView : MonoBehaviour
     GameStage.Movement movement,
     bool rewind,
     CancellationToken ct
-  ) =>
-    (movement.To.Y - movement.From.Y) switch
+  )
+  {
+    var ((x0, y0, z0), (x1, y1, z1)) = movement;
+    var past = new Vector3(x0, y0, z0);
+    var current = new Vector3(x1, y1, z1);
+    return (y1 - y0) switch
     {
-      > 0 => stageObject.ClimbAsync(movement, rewind, ct),
-      < 0 => stageObject.FallAsync(movement, rewind, ct),
-      _ => stageObject.WalkAsync(movement, rewind, ct),
+      > 0 => stageObject.ClimbAsync((past, current), rewind, ct),
+      < 0 => stageObject.FallAsync((past.y, current.y), rewind, ct),
+      _ =>
+        stageObject.WalkAsync(
+          ((past.x, past.z), (current.x, current.z)),
+          rewind,
+          ct
+        ),
     };
+  }
 
   private static UniTask TurnPlayersAsync(
     IReadOnlyCollection<PlayerStageObject> players,

@@ -10,24 +10,27 @@ public class PlayerStageObject : StageObject
   private float rotateAnimationSeconds = 0.1f;
 
   [SerializeField]
+  private AudioSource bumpSound;
+
+  [SerializeField]
   private float bumpDistance = 0.2f;
 
-  [SerializeField]
-  private float bumpSeconds = 0.15f;
-
-  [SerializeField]
-  private AudioSource moveSound;
+  [SerializeField] private float bumpHeight = 0.4f;
 
   private Tween _rotateTween;
 
-  public async UniTask TurnAsync(GameStage.Direction direction, CancellationToken ct)
+  public async UniTask TurnAsync(
+    GameStage.Direction direction,
+    CancellationToken ct
+  )
   {
     var lookRotation = Quaternion.LookRotation(VectorOf(direction));
     _rotateTween?.Kill();
     try
     {
       _rotateTween =
-        transform.DOLocalRotateQuaternion(lookRotation, rotateAnimationSeconds);
+        transform
+          .DOLocalRotateQuaternion(lookRotation, rotateAnimationSeconds);
       await _rotateTween.WithCancellation(ct);
     }
     finally
@@ -36,15 +39,38 @@ public class PlayerStageObject : StageObject
     }
   }
 
-  public UniTask BumpAsync(GameStage.Direction direction, CancellationToken ct)
+  public async UniTask BumpAsync(
+    GameStage.Direction direction,
+    CancellationToken ct
+  )
   {
     var origin = transform.localPosition;
-    var apex = origin + VectorOf(direction) * bumpDistance;
-    return AnimateAsync(
-      () => DOTween.Sequence()
-        .Append(transform.DOLocalMove(apex, bumpSeconds * 0.5f).SetEase(Ease.OutQuad))
-        .Append(transform.DOLocalMove(origin, bumpSeconds * 0.5f).SetEase(Ease.InQuad)),
-      origin,
+    var bumpAt = origin + VectorOf(direction) * bumpDistance;
+    var (walk, _) =
+      Walk(((origin.x, origin.z), (bumpAt.x, bumpAt.z)), false);
+    var arc =
+      MoveArc(bumpAt.y + bumpHeight, origin.y, 1f);
+    var drawBack = LinearMoveXZ((origin.x, origin.z), arc.Duration());
+    var animation =
+      DOTween.Sequence()
+        .Append(walk)
+        .JoinCallback(() =>
+        {
+          if (walkSound)
+          {
+            walkSound.Play();
+          }
+        }).Append(arc)
+        .Join(drawBack)
+        .JoinCallback(() =>
+        {
+          if (bumpSound)
+          {
+            bumpSound.Play();
+          }
+        });
+    await AnimateAsync(
+      () => (animation, origin),
       ct
     );
   }
