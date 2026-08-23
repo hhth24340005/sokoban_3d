@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -20,7 +19,7 @@ public sealed class GameStage
   {
     get
     {
-      var goals = ListEntitiesWithRule(Rule.Goal).ToImmutableList();
+      var goals = ListEntitiesWithRule(Rule.Goal);
       if (goals.Count == 0)
       {
         return false;
@@ -65,10 +64,11 @@ public sealed class GameStage
         .SelectMany(player =>
         {
           var playerTargetPos = PositionOffset(player.CurrentPos, direction);
-          if (!TryGetCellAt(playerTargetPos,
-                out var playerTargetCellEnumerable))
-            return Enumerable.Empty<(Entity, Position, Position)>();
-          var playerTargetCell = playerTargetCellEnumerable.ToImmutableList();
+          if (!TryGetCellAt(playerTargetPos, out var playerTargetCell))
+          {
+            return ImmutableList<(Entity, Position, Position)>.Empty;
+          }
+
           if (playerTargetCell.Any(it => it.HasRule(Rule.Stop)))
           {
             return ClimbOrNothing(player, playerTargetPos);
@@ -80,7 +80,7 @@ public sealed class GameStage
               .ToImmutableList();
           if (pushable.IsEmpty)
           {
-            return new[] { (player, player.CurrentPos, playerTargetPos) };
+            return ImmutableList.Create((player, player.CurrentPos, playerTargetPos));
           }
 
           var pushTargetPos = PositionOffset(playerTargetPos, direction);
@@ -104,7 +104,7 @@ public sealed class GameStage
           };
           pushed.AddRange(pushable.Select(it =>
             (it, playerTargetPos, pushTargetPos)));
-          return pushed;
+          return pushed.ToImmutableList();
         }).ToImmutableList();
 
     var paths = new Dictionary<Entity, List<Movement>>();
@@ -213,7 +213,7 @@ public sealed class GameStage
     Goal
   }
 
-  private IEnumerable<(Entity, Position, Position)> ClimbOrNothing(
+  private IReadOnlyList<(Entity, Position, Position)> ClimbOrNothing(
     Entity player,
     Position climbOverPos
   )
@@ -221,19 +221,19 @@ public sealed class GameStage
     var headPos = player.CurrentPos with { Y = player.CurrentPos.Y + 1 };
     if (!TryGetCellAt(headPos, out var headCell) || IsBlocked(headCell))
     {
-      return Enumerable.Empty<(Entity, Position, Position)>();
+      return ImmutableList<(Entity, Position, Position)>.Empty;
     }
 
     var climbToPos = climbOverPos with { Y = climbOverPos.Y + 1 };
     if (!TryGetCellAt(climbToPos, out var climbToCell) || IsBlocked(climbToCell))
     {
-      return Enumerable.Empty<(Entity, Position, Position)>();
+      return ImmutableList<(Entity, Position, Position)>.Empty;
     }
 
-    return new[] { (player, player.CurrentPos, climbToPos) };
+    return ImmutableList.Create((player, player.CurrentPos, climbToPos));
   }
 
-  private static bool IsBlocked(IEnumerable<Entity> cell) =>
+  private static bool IsBlocked(IReadOnlyList<Entity> cell) =>
     cell.Any(it => it.HasRule(Rule.Stop) || it.HasRule(Rule.Pushable));
 
   private static void AppendMovement(
@@ -259,7 +259,7 @@ public sealed class GameStage
       kv => (IReadOnlyList<Movement>)kv.Value.ToImmutableList()
     );
 
-  private IEnumerable<(Entity, Position, Position)> FallGravitational() =>
+  private IReadOnlyList<(Entity, Position, Position)> FallGravitational() =>
     ListEntitiesWithRule(Rule.Gravitational)
       .Select(entity =>
       {
@@ -288,19 +288,42 @@ public sealed class GameStage
       .Where(it => it.from != it.to)
       .ToImmutableList();
 
-  private bool TryGetCellAt(Position pos, out IEnumerable<Entity> cell)
+  private bool TryGetCellAt(Position pos, out IReadOnlyList<Entity> cell)
   {
     if (IsOutOfBounds(pos))
     {
       cell = null;
       return false;
     }
-    cell = new Cell(pos, _sortedEntities);
+    cell =
+      _sortedEntities
+        .Skip(SearchLower(pos))
+        .TakeWhile(it => it.CompareTo(pos) == 0)
+        .ToImmutableList();
     return true;
   }
 
-  private IEnumerable<Entity> ListEntitiesWithRule(Rule rule) =>
-    _sortedEntities.Where(it => it.HasRule(rule));
+  private int SearchLower(Position pos)
+  {
+    var low = 0;
+    var high = _sortedEntities.Count;
+    while (low < high)
+    {
+      var mid = (low + high) / 2;
+      if (_sortedEntities[mid].CompareTo(pos) < 0)
+      {
+        low = mid + 1;
+      }
+      else
+      {
+        high = mid;
+      }
+    }
+    return low;
+  }
+
+  private IReadOnlyList<Entity> ListEntitiesWithRule(Rule rule) =>
+    _sortedEntities.Where(it => it.HasRule(rule)).ToImmutableList();
 
   private bool IsOutOfBounds(Position pos) =>
     pos.X < 0 || _size.x <= pos.X ||
@@ -358,42 +381,4 @@ public sealed class GameStage
       pos.Z * _outer._size.x * _outer._size.y;
   }
 
-  private class Cell : IEnumerable<Entity>
-  {
-    private readonly Position _pos;
-    private readonly IReadOnlyList<Entity> _entities;
-
-    public Cell(Position pos, IReadOnlyList<Entity> entities)
-    {
-      this._pos = pos;
-      this._entities = entities;
-    }
-
-    public IEnumerator<Entity> GetEnumerator()
-    {
-      var start = SearchLower();
-      return _entities.Skip(start).TakeWhile(x => x.CompareTo(_pos) == 0).GetEnumerator();
-    }
-
-    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-
-    private int SearchLower()
-    {
-      var low = 0;
-      var high = _entities.Count;
-      while (low < high)
-      {
-        var mid = (low + high) / 2;
-        if (_entities[mid].CompareTo(_pos) < 0)
-        {
-          low = mid + 1;
-        }
-        else
-        {
-          high = mid;
-        }
-      }
-      return low;
-    }
-  }
 }
