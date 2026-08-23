@@ -13,6 +13,9 @@ public class PlayerStageObject : StageObject
   private AudioSource bumpSound;
 
   [SerializeField]
+  private float bumpSeconds = 0.1f;
+
+  [SerializeField]
   private float bumpDistance = 0.2f;
 
   [SerializeField] private float bumpHeight = 0.4f;
@@ -46,10 +49,8 @@ public class PlayerStageObject : StageObject
   {
     var origin = transform.localPosition;
     var bumpAt = origin + VectorOf(direction) * bumpDistance;
-    var (walk, _) =
-      Walk(((origin.x, origin.z), (bumpAt.x, bumpAt.z)), false);
-    var arc =
-      MoveArc(bumpAt.y + bumpHeight, origin.y, 1f);
+    var walk = LinearMoveXZ((bumpAt.x, bumpAt.z), bumpSeconds);
+    var arc = MoveArc(bumpAt.y + bumpHeight, origin.y, 1f);
     var drawBack = LinearMoveXZ((origin.x, origin.z), arc.Duration());
     var animation =
       DOTween.Sequence()
