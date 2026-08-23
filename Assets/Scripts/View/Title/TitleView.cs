@@ -22,6 +22,12 @@ public sealed class TitleView : MonoBehaviour
   private AudioSource music;
 
   [SerializeField]
+  private AudioSource submitSound;
+
+  [SerializeField]
+  private AudioSource cancelSound;
+
+  [SerializeField]
   private CanvasGroup initialButtonGroup;
 
   [SerializeField]
@@ -136,6 +142,7 @@ public sealed class TitleView : MonoBehaviour
   )
   {
     await startButton.OnClickAsync(ct);
+    submitSound.Play();
     return async ct1 =>
     {
       initialButtonGroup.blocksRaycasts = false;
@@ -151,10 +158,16 @@ public sealed class TitleView : MonoBehaviour
           stages.Select(entry =>
             entry.Button
               .OnClickAsync(ct1)
-              .ContinueWith(() => entry.Stage)
+              .ContinueWith(() =>
+              {
+                submitSound.Play();
+                return entry.Stage;
+              })
           ).ToImmutableArray()
         ),
-        cancelStartButton.OnClickAsync(ct1)
+        cancelStartButton
+          .OnClickAsync(ct1)
+          .ContinueWith(() => cancelSound.Play())
       );
       if (hasResult)
       {
@@ -178,6 +191,7 @@ public sealed class TitleView : MonoBehaviour
   )
   {
     await creditsButton.OnClickAsync(ct);
+    submitSound.Play();
     return async ct1 =>
     {
       initialButtonGroup.blocksRaycasts = false;
@@ -187,6 +201,7 @@ public sealed class TitleView : MonoBehaviour
       creditsGroup.interactable = true;
       creditsGroup.alpha = 1f;
       await creditsBackButton.OnClickAsync(ct1);
+      cancelSound.Play();
       creditsGroup.blocksRaycasts = false;
       creditsGroup.interactable = false;
       creditsGroup.alpha = 0f;
