@@ -89,7 +89,7 @@ public sealed class GameStagePreset : ScriptableObject
   {
     _ = GetGameObjectPositions();
     _sizeCache = null;
-    Debug.Log($"Current stage size: {Size}");
+    // Debug.Log($"Current stage size: {Size}");
   }
 }
 
