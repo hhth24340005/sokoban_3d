@@ -50,6 +50,7 @@ public sealed class PauseView : MonoBehaviour
         duration: fadeInSeconds
       ).WithCancellation(ct);
       overlay.interactable = true;
+      overlay.blocksRaycasts = true;
       await buttonGroup.FadeInAsync(ct);
 
       var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
@@ -72,6 +73,7 @@ public sealed class PauseView : MonoBehaviour
     finally
     {
       overlay.interactable = false;
+      overlay.blocksRaycasts = false;
       uiInput.Disable();
       if (resume)
       {
