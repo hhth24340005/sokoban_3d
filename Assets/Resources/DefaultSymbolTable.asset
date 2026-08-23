@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1ad195c70ad3c478db2f5f177665a108, type: 3}
+  m_Name: DefaultSymbolTable
+  m_EditorClassIdentifier: Sokoban::StageSymbolTable
+  emptySymbol: 46
+  bindings:
+  - symbol: 83
+    prefab: {fileID: 2161239871878608166, guid: 6fac8f009a2f14e19bfd30a85e66f94d, type: 3}
+  - symbol: 71
+    prefab: {fileID: 5114083548128612202, guid: 13a8fb72183cb4ad1ac89d36a9b4e939, type: 3}
+  - symbol: 66
+    prefab: {fileID: 6469214695562418017, guid: 7b9e19cd66e4d490fa3f300d0fa224ec, type: 3}
+  - symbol: 67
+    prefab: {fileID: 6469214695562418017, guid: c45991e3ca4f14e078a6ca7d3fee6ce4, type: 3}
+  - symbol: 35
+    prefab: {fileID: 6469214695562418017, guid: 8aaa51bda0ac44e1c9ab00e5a9d8cf19, type: 3}

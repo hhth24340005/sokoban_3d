@@ -8,10 +8,11 @@ using UnityEngine;
 public sealed class GameStagePreset : ScriptableObject
 {
   [SerializeField]
-  private Vector3Int size = new(1, 1, 1);
+  private StageSymbolTable symbolTable;
 
   [SerializeField]
-  private Cell[] cells = { };
+  [TextArea]
+  private List<string> cells = new();
 
   [SerializeField]
   private StageGround groundPrefab;
@@ -22,28 +23,59 @@ public sealed class GameStagePreset : ScriptableObject
   [SerializeField]
   private AudioClip music;
 
-  public Vector3Int Size => size;
+  private Vector3Int? _sizeCache;
+
+  public Vector3Int Size =>
+    _sizeCache ??= new Vector3Int(
+      x: cells
+        .Max(floor =>
+          floor.Split(Environment.NewLine).Max(line => line.Length)
+        ),
+      y: cells.Count,
+      z: cells
+        .Max(floor =>
+          floor.Split(Environment.NewLine).Length
+        )
+    );
 
   public Vector3 Center => new(
-    (size.x - 1) / 2f,
-    (size.y - 1) / 2f,
-    (size.z - 1) / 2f
+    (Size.x - 1) / 2f,
+    (Size.y - 1) / 2f,
+    (Size.z - 1) / 2f
   );
 
-  public IReadOnlyDictionary<StageObject, IReadOnlyList<GameStage.Position>> GetGameObjectPositions()
+  public IReadOnlyDictionary<
+    StageObject,
+    IReadOnlyList<GameStage.Position>
+  > GetGameObjectPositions()
   {
     var dict = new Dictionary<StageObject, List<GameStage.Position>>();
-    foreach (var index in Enumerable.Range(0, cells.Length))
+    foreach (var (floor, y) in cells.Select((it, y) => (it, Size.y - 1 - y)))
     {
-      foreach (var obj in cells[index].StageObjects)
+      foreach (
+        var (line, z) in
+          floor
+            .Split(Environment.NewLine)
+            .Select((it, z) => (it, Size.z - 1 - z))
+      )
       {
-        dict.TryAdd(obj, new());
-        dict[obj].Add(ToPosition(index));
+        foreach (var (cell, x) in line.Select((it, x) => (it, x)))
+        {
+          if (symbolTable.Table.TryGetValue(cell, out var obj))
+          {
+            dict.TryAdd(obj, new List<GameStage.Position>());
+            dict[obj].Add(new GameStage.Position(x, y, z));
+          }
+          else if (cell != symbolTable.EmptySymbol)
+          {
+            Debug.LogError($"Unknown symbol: {cell}");
+          }
+        }
       }
     }
     return dict.ToImmutableDictionary(
       it => it.Key,
-      it => (IReadOnlyList<GameStage.Position>)it.Value.ToImmutableList() // ??? Why am I supposed to cast
+      it => (IReadOnlyList<GameStage.Position>)it.Value.ToImmutableList()
     );
   }
 
@@ -53,24 +85,11 @@ public sealed class GameStagePreset : ScriptableObject
 
   public AudioClip Music => music;
 
-  private GameStage.Position ToPosition(int index) =>
-    new(
-      X: index % size.x,
-      Y: index / size.x % size.y,
-      Z: index / size.x / size.y
-    );
-}
-
-[Serializable]
-public struct Cell
-{
-  [SerializeField]
-  private List<StageObject> stageObjects;
-
-  public IReadOnlyList<StageObject> StageObjects => stageObjects;
-
-  public Cell(IReadOnlyCollection<StageObject> stageObjects)
+  private void OnValidate()
   {
-    this.stageObjects = new(stageObjects);
+    _ = GetGameObjectPositions();
+    _sizeCache = null;
+    Debug.Log($"Current stage size: {Size}");
   }
 }
+
