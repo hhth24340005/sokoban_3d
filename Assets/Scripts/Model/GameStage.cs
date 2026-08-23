@@ -71,7 +71,7 @@ public sealed class GameStage
           var playerTargetCell = playerTargetCellEnumerable.ToImmutableList();
           if (playerTargetCell.Any(it => it.HasRule(Rule.Stop)))
           {
-            return Enumerable.Empty<(Entity, Position, Position)>();
+            return ClimbOrNothing(player, playerTargetPos);
           }
 
           var pushable =
@@ -85,10 +85,9 @@ public sealed class GameStage
 
           var pushTargetPos = PositionOffset(playerTargetPos, direction);
           if (!TryGetCellAt(pushTargetPos, out var pushTargetCell) ||
-              !pushTargetCell.All(it =>
-                !it.HasRule(Rule.Stop) && !it.HasRule(Rule.Pushable)))
+              IsBlocked(pushTargetCell))
           {
-            return Enumerable.Empty<(Entity, Position, Position)>();
+            return ClimbOrNothing(player, playerTargetPos);
           }
 
           var playerTargetUpPos =
@@ -96,7 +95,7 @@ public sealed class GameStage
           if (TryGetCellAt(playerTargetUpPos, out var playerTargetUpCell) &&
               playerTargetUpCell.Any(it => it.HasRule(Rule.Gravitational)))
           {
-            return Enumerable.Empty<(Entity, Position, Position)>();
+            return ClimbOrNothing(player, playerTargetPos);
           }
 
           var pushed = new List<(Entity, Position, Position)>
@@ -214,6 +213,29 @@ public sealed class GameStage
     Goal
   }
 
+  private IEnumerable<(Entity, Position, Position)> ClimbOrNothing(
+    Entity player,
+    Position climbOverPos
+  )
+  {
+    var headPos = player.CurrentPos with { Y = player.CurrentPos.Y + 1 };
+    if (!TryGetCellAt(headPos, out var headCell) || IsBlocked(headCell))
+    {
+      return Enumerable.Empty<(Entity, Position, Position)>();
+    }
+
+    var climbToPos = climbOverPos with { Y = climbOverPos.Y + 1 };
+    if (!TryGetCellAt(climbToPos, out var climbToCell) || IsBlocked(climbToCell))
+    {
+      return Enumerable.Empty<(Entity, Position, Position)>();
+    }
+
+    return new[] { (player, player.CurrentPos, climbToPos) };
+  }
+
+  private static bool IsBlocked(IEnumerable<Entity> cell) =>
+    cell.Any(it => it.HasRule(Rule.Stop) || it.HasRule(Rule.Pushable));
+
   private static void AppendMovement(
     IDictionary<Entity, List<Movement>> paths,
     Entity entity,
@@ -245,10 +267,7 @@ public sealed class GameStage
         while (true)
         {
           var candidate = fallTo with { Y = fallTo.Y - 1 };
-          if (
-            TryGetCellAt(candidate, out var cell) &&
-            cell.All(it => !it.HasRule(Rule.Stop) && !it.HasRule(Rule.Pushable))
-          )
+          if (TryGetCellAt(candidate, out var cell) && !IsBlocked(cell))
           {
             fallTo = candidate;
           }
