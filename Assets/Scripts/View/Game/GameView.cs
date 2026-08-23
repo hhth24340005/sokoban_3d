@@ -34,6 +34,7 @@ public sealed class GameView : MonoBehaviour
     using (instantiated.gameObject.CreateChild(preset.StageCameraPrefab, out var stageCamera))
     {
       var (idToObj, stage) = CreateStage(instantiated.transform, preset);
+      var players = idToObj.Values.OfType<PlayerStageObject>().ToImmutableList();
       var bounds = new Bounds(center: preset.Center, size: preset.Size);
       stageCamera.Init(bounds);
 
@@ -64,6 +65,7 @@ public sealed class GameView : MonoBehaviour
               stage,
               stageCamera,
               (id) => idToObj[id],
+              players,
               cts.Token
             );
           var (_, anim) =
@@ -168,17 +170,20 @@ public sealed class GameView : MonoBehaviour
     GameStage stage,
     StageCamera camera,
     Func<GameStage.EntityId, StageObject> idToObj,
+    IReadOnlyCollection<PlayerStageObject> players,
     CancellationToken ct
   )
   {
+    var facing = new PlayerFacing();
     while (true)
     {
       ct.ThrowIfCancellationRequested();
       var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
       var moveTask =
-        MovePlayerForInputAsync(moveForward, moveRight, moveBackward, moveLeft, stage, camera, cts.Token);
-      var undoTask = UndoMovementForInputAsync(stage, cts.Token);
-      var redoTask = RedoMovementForInputAsync(stage, cts.Token);
+        MovePlayerForInputAsync(
+          moveForward, moveRight, moveBackward, moveLeft, stage, camera, facing, players, cts.Token);
+      var undoTask = UndoMovementForInputAsync(stage, facing, cts.Token);
+      var redoTask = RedoMovementForInputAsync(stage, facing, cts.Token);
       Func<Func<GameStage.EntityId, StageObject>, CancellationToken, UniTask> animate;
       try
       {
@@ -212,12 +217,24 @@ public sealed class GameView : MonoBehaviour
     InputAction moveLeft,
     GameStage stage,
     StageCamera camera,
+    PlayerFacing facing,
+    IReadOnlyCollection<PlayerStageObject> players,
     CancellationToken ct
   )
   {
     var worldDirection =
       await WaitForPlayerMoveInputAsync(moveForward, moveRight, moveBackward, moveLeft, ct);
-    var movements = stage.MovePlayers(camera.CameraLocalInput(worldDirection));
+    var direction = camera.CameraLocalInput(worldDirection);
+    var movements = stage.MovePlayers(direction);
+    var bumped = movements.Count <= 0 && facing.Current == direction;
+    if (movements.Count > 0)
+    {
+      facing.Advance(direction);
+    }
+    else
+    {
+      facing.Turn(direction);
+    }
     undoButton.interactable = stage.CanUndo;
     redoButton.interactable = stage.CanRedo;
 
@@ -225,9 +242,21 @@ public sealed class GameView : MonoBehaviour
     {
       undoButton.interactable = false;
       redoButton.interactable = false;
-      await movements
-        .Select(entry => PlayPathAsync(idToObj(entry.Key), entry.Value, ct1))
-        .ToImmutableList();
+      if (movements.Count > 0)
+      {
+        await movements
+          .Select(entry =>
+            AnimatePathAsync(idToObj(entry.Key), entry.Value, rewind: false, direction, ct1))
+          .ToImmutableList();
+      }
+      else if (bumped)
+      {
+        await BumpPlayersAsync(players, direction, ct1);
+      }
+      else
+      {
+        await TurnPlayersAsync(players, direction, ct1);
+      }
       undoButton.interactable = stage.CanUndo;
       redoButton.interactable = stage.CanRedo;
     };
@@ -275,11 +304,17 @@ public sealed class GameView : MonoBehaviour
     >
   > UndoMovementForInputAsync(
     GameStage stage,
+    PlayerFacing facing,
     CancellationToken ct
   )
   {
     await undoButton.OnClickAsync(ct);
     var undone = stage.Undo();
+    if (undone.Count > 0)
+    {
+      facing.Undo();
+    }
+    var restored = facing.Current;
     undoButton.interactable = stage.CanUndo;
     redoButton.interactable = stage.CanRedo;
     return async (idToObj, ct1) =>
@@ -287,7 +322,8 @@ public sealed class GameView : MonoBehaviour
       undoButton.interactable = false;
       redoButton.interactable = false;
       await undone
-        .Select(entry => RewindPathAsync(idToObj(entry.Key), entry.Value, ct1))
+        .Select(entry =>
+          AnimatePathAsync(idToObj(entry.Key), entry.Value, rewind: true, restored, ct1))
         .ToImmutableList();
       undoButton.interactable = stage.CanUndo;
       redoButton.interactable = stage.CanRedo;
@@ -302,11 +338,17 @@ public sealed class GameView : MonoBehaviour
     >
   > RedoMovementForInputAsync(
     GameStage stage,
+    PlayerFacing facing,
     CancellationToken ct
   )
   {
     await redoButton.OnClickAsync(ct);
     var redone = stage.Redo();
+    if (redone.Count > 0)
+    {
+      facing.Redo();
+    }
+    var restored = facing.Current;
     undoButton.interactable = stage.CanUndo;
     redoButton.interactable = stage.CanRedo;
     return async (idToObj, ct1) =>
@@ -314,7 +356,8 @@ public sealed class GameView : MonoBehaviour
       undoButton.interactable = false;
       redoButton.interactable = false;
       await redone
-        .Select(entry => PlayPathAsync(idToObj(entry.Key), entry.Value, ct1))
+        .Select(entry =>
+          AnimatePathAsync(idToObj(entry.Key), entry.Value, rewind: false, restored, ct1))
         .ToImmutableList();
       undoButton.interactable = stage.CanUndo;
       redoButton.interactable = stage.CanRedo;
@@ -366,29 +409,134 @@ public sealed class GameView : MonoBehaviour
     void OnPerform(InputAction.CallbackContext ctx) => tcs.TrySetResult();
   }
 
-  private static async UniTask PlayPathAsync(
+  private static UniTask AnimatePathAsync(
     StageObject stageObject,
     IReadOnlyList<GameStage.Movement> path,
+    bool rewind,
+    GameStage.Direction facing,
+    CancellationToken ct
+  ) =>
+    stageObject is PlayerStageObject player
+      ? AnimatePlayerPathAsync(player, path, rewind, facing, ct)
+      : AnimateOrderedAsync(stageObject, Ordered(path, rewind), rewind, turnAt: -1, null, ct);
+
+  private static async UniTask AnimatePlayerPathAsync(
+    PlayerStageObject player,
+    IReadOnlyList<GameStage.Movement> path,
+    bool rewind,
+    GameStage.Direction facing,
     CancellationToken ct
   )
   {
-    foreach (var movement in path)
+    var ordered = Ordered(path, rewind);
+    var turnAt = rewind
+      ? ordered.FindLastIndex(IsHorizontal)
+      : ordered.FindIndex(IsHorizontal);
+    await AnimateOrderedAsync(player, ordered, rewind, turnAt, facing, ct);
+    if (turnAt < 0)
     {
-      var (x, y, z) = movement.To;
-      await stageObject.MoveTo(new(x, y, z), ct);
+      await player.TurnAsync(facing, ct);
     }
   }
 
-  private static async UniTask RewindPathAsync(
+  private static async UniTask AnimateOrderedAsync(
     StageObject stageObject,
-    IReadOnlyList<GameStage.Movement> path,
+    ImmutableList<GameStage.Movement> ordered,
+    bool rewind,
+    int turnAt,
+    GameStage.Direction? facing,
     CancellationToken ct
   )
   {
-    foreach (var movement in path.Reverse())
+    for (var i = 0; i < ordered.Count; i++)
     {
-      var (x, y, z) = movement.From;
-      await stageObject.RewindTo(new(x, y, z), ct);
+      var animation = AnimateAsync(stageObject, ordered[i], rewind, ct);
+      if (i == turnAt && facing is { } direction && stageObject is PlayerStageObject player)
+      {
+        await UniTask.WhenAll(animation, player.TurnAsync(direction, ct));
+      }
+      else
+      {
+        await animation;
+      }
+    }
+  }
+
+  private static ImmutableList<GameStage.Movement> Ordered(
+    IReadOnlyList<GameStage.Movement> path,
+    bool rewind
+  ) => (rewind ? path.Reverse() : path).ToImmutableList();
+
+  private static bool IsHorizontal(GameStage.Movement movement) =>
+    movement.From.X != movement.To.X || movement.From.Z != movement.To.Z;
+
+  private static UniTask AnimateAsync(
+    StageObject stageObject,
+    GameStage.Movement movement,
+    bool rewind,
+    CancellationToken ct
+  ) =>
+    (movement.To.Y - movement.From.Y) switch
+    {
+      > 0 => stageObject.ClimbAsync(movement, rewind, ct),
+      < 0 => stageObject.FallAsync(movement, rewind, ct),
+      _ => stageObject.WalkAsync(movement, rewind, ct),
+    };
+
+  private static UniTask TurnPlayersAsync(
+    IReadOnlyCollection<PlayerStageObject> players,
+    GameStage.Direction direction,
+    CancellationToken ct
+  ) =>
+    UniTask.WhenAll(
+      players.Select(it => it.TurnAsync(direction, ct)).ToImmutableList()
+    );
+
+  private static UniTask BumpPlayersAsync(
+    IReadOnlyCollection<PlayerStageObject> players,
+    GameStage.Direction direction,
+    CancellationToken ct
+  ) =>
+    UniTask.WhenAll(
+      players.Select(it => it.BumpAsync(direction, ct)).ToImmutableList()
+    );
+
+  private sealed class PlayerFacing
+  {
+    private readonly Stack<GameStage.Direction> _moveHistory = new();
+    private readonly Stack<GameStage.Direction> _undoHistory = new();
+
+    public GameStage.Direction Current { get; private set; } = InitialDirection;
+
+    private const GameStage.Direction InitialDirection = GameStage.Direction.MinusZ;
+
+    public void Advance(GameStage.Direction direction)
+    {
+      _moveHistory.Push(direction);
+      _undoHistory.Clear();
+      Current = direction;
+    }
+
+    public void Turn(GameStage.Direction direction) => Current = direction;
+
+    public void Undo()
+    {
+      if (_moveHistory.Count <= 0)
+      {
+        return;
+      }
+      _undoHistory.Push(_moveHistory.Pop());
+      Current = _moveHistory.Count > 0 ? _moveHistory.Peek() : InitialDirection;
+    }
+
+    public void Redo()
+    {
+      if (_undoHistory.Count <= 0)
+      {
+        return;
+      }
+      _moveHistory.Push(_undoHistory.Pop());
+      Current = _moveHistory.Peek();
     }
   }
 }

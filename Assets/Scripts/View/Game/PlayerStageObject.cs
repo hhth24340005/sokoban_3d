@@ -1,3 +1,4 @@
+using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using DG.Tweening;
@@ -8,45 +9,50 @@ public class PlayerStageObject : StageObject
   [SerializeField]
   private float rotateAnimationSeconds = 0.1f;
 
-  public override async UniTask MoveTo(Vector3 target, CancellationToken ct)
+  [SerializeField]
+  private float bumpDistance = 0.2f;
+
+  [SerializeField]
+  private float bumpSeconds = 0.15f;
+
+  private Tween _rotateTween;
+
+  public async UniTask TurnAsync(GameStage.Direction direction, CancellationToken ct)
   {
-    var moveTask = base.MoveTo(target, ct);
-    var rotateTask = UniTask.CompletedTask;
-    if (
-      !Mathf.Approximately(transform.localPosition.x, target.x) ||
-        !Mathf.Approximately(transform.localPosition.z, target.z)
-    )
+    var lookRotation = Quaternion.LookRotation(VectorOf(direction));
+    _rotateTween?.Kill();
+    try
     {
-      var lookAt = target;
-      lookAt.y = transform.localPosition.y;
-      var lookRotation = Quaternion.LookRotation(lookAt - transform.localPosition);
-      rotateTask =
-        transform
-          .DOLocalRotateQuaternion(lookRotation, rotateAnimationSeconds)
-          .WithCancellation(ct);
-      ct.Register(() => transform.localRotation = lookRotation);
+      _rotateTween =
+        transform.DOLocalRotateQuaternion(lookRotation, rotateAnimationSeconds);
+      await _rotateTween.WithCancellation(ct);
     }
-    await UniTask.WhenAll(moveTask, rotateTask);
+    finally
+    {
+      transform.localRotation = lookRotation;
+    }
   }
 
-  public override async UniTask RewindTo(Vector3 target, CancellationToken ct)
+  public UniTask BumpAsync(GameStage.Direction direction, CancellationToken ct)
   {
-    var moveTask = base.RewindTo(target, ct);
-    var rotateTask = UniTask.CompletedTask;
-    if (
-      !Mathf.Approximately(transform.localPosition.x, target.x) ||
-        !Mathf.Approximately(transform.localPosition.z, target.z)
-    )
-    {
-      var lookAt = target;
-      lookAt.y = transform.localPosition.y;
-      var lookRotation = Quaternion.LookRotation(transform.localPosition - lookAt);
-      rotateTask =
-        transform
-          .DOLocalRotateQuaternion(lookRotation, rotateAnimationSeconds)
-          .WithCancellation(ct);
-      ct.Register(() => transform.localRotation = lookRotation);
-    }
-    await UniTask.WhenAll(moveTask, rotateTask);
+    var origin = transform.localPosition;
+    var apex = origin + VectorOf(direction) * bumpDistance;
+    return AnimateAsync(
+      () => DOTween.Sequence()
+        .Append(transform.DOLocalMove(apex, bumpSeconds * 0.5f).SetEase(Ease.OutQuad))
+        .Append(transform.DOLocalMove(origin, bumpSeconds * 0.5f).SetEase(Ease.InQuad)),
+      origin,
+      ct
+    );
   }
+
+  private static Vector3 VectorOf(GameStage.Direction direction) =>
+    direction switch
+    {
+      GameStage.Direction.PlusZ => Vector3.forward,
+      GameStage.Direction.PlusX => Vector3.right,
+      GameStage.Direction.MinusZ => Vector3.back,
+      GameStage.Direction.MinusX => Vector3.left,
+      _ => throw new Exception($"Unknown {nameof(GameStage.Direction)} type >.<"),
+    };
 }
