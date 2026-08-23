@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 367cb0af7830547fe959169ee26d636e, type: 3}
   m_Name: Tutorial0
   m_EditorClassIdentifier: Assembly-CSharp::GameStage
-  symbolTable: {fileID: 11400000, guid: be15ab6161398462d93e69d92e8f28fd, type: 2}
+  symbolTable: {fileID: 11400000, guid: 484808234f09c4f1eaff1b69d05825b9, type: 2}
   cells:
   - '.........
 
@@ -25,11 +25,11 @@ MonoBehaviour:
     .........'
   - '.........
 
-    ...#$#$#.
+    .^.#$#$#.
 
-    .S.$#$#$.
+    <S>$#$#$.
 
-    ...#$#$#.
+    .v.#$#$#.
 
     .........'
   groundPrefab: {fileID: 7147285430464931746, guid: 921b4f74cd0094be59d91ee7abf83f0c, type: 3}
