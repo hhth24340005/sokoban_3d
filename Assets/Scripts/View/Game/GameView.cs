@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
@@ -12,6 +13,12 @@ public sealed class GameView : MonoBehaviour
 {
   [SerializeField]
   private PauseView pauseView;
+
+  [SerializeField]
+  private CanvasGroup gameClearOverlay;
+
+  [SerializeField]
+  private AudioSource gameClearSound;
 
   [SerializeField]
   private TransitionView returnTransitionPrefab;
@@ -191,10 +198,23 @@ public sealed class GameView : MonoBehaviour
       var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
       var moveTask =
         MovePlayerForInputAsync(
-          moveForward, moveRight, moveBackward, moveLeft, stage, camera, facing, players, cts.Token);
+          moveForward,
+          moveRight,
+          moveBackward,
+          moveLeft,
+          stage,
+          camera,
+          facing,
+          players,
+          cts.Token
+        );
       var undoTask = UndoMovementForInputAsync(stage, facing, cts.Token);
       var redoTask = RedoMovementForInputAsync(stage, facing, cts.Token);
-      Func<Func<GameStage.EntityId, StageObject>, CancellationToken, UniTask> animate;
+      Func<
+        Func<GameStage.EntityId, StageObject>,
+        CancellationToken,
+        UniTask
+      > animate;
       try
       {
         (_, animate) = await UniTask.WhenAny<
@@ -208,8 +228,17 @@ public sealed class GameView : MonoBehaviour
       await animate(idToObj, ct);
       if (stage.IsCleared)
       {
+        musicSource.Stop();
+        gameClearSound.Play();
+        await DOTween.To(
+          () => gameClearOverlay.alpha,
+          x => gameClearOverlay.alpha = x,
+          0.9f,
+          2f
+        ).WithCancellation(ct);
+        await UniTask.Delay(1000, cancellationToken: ct);
         transitionParent.CreateChild(returnTransitionPrefab, out var transition);
-        return async (ct1) => await transition.CoverAsync(ct1);
+        return async ct1 => await transition.CoverAsync(ct1);
       }
     }
   }

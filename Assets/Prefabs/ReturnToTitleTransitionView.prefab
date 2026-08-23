@@ -150,9 +150,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Sokoban::FadingTransitionView
   overlay: {fileID: 1889347677999348033}
   fadeInSeconds: 1
-  fadeOutSeconds: 0.5
+  fadeOutSeconds: 2
   fadeInEase: 4
-  fadeOutEase: 4
+  fadeOutEase: 6
 --- !u!1 &6762055655604886490
 GameObject:
   m_ObjectHideFlags: 0
