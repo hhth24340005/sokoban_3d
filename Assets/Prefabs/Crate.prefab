@@ -138,6 +138,7 @@ MonoBehaviour:
   rules: 020000000300000004000000
   animationSeconds: 0.2
   rewindDurationMultiplier: 0.5
-  gravityAcceleration: 9.8
+  gravityAcceleration: 19.6
+  climbApexOffset: 0.15
   ease: 6
   easeRewind: 5

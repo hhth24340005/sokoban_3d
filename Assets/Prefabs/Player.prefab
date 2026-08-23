@@ -417,10 +417,14 @@ MonoBehaviour:
   rules: 0300000001000000
   animationSeconds: 0.2
   rewindDurationMultiplier: 0.5
-  gravityAcceleration: 9.8
+  gravityAcceleration: 39.2
+  climbApexOffset: 0.3
+  climbDurationMultiplier: 0.6
   ease: 6
   easeRewind: 5
   rotateAnimationSeconds: 0.1
+  bumpDistance: 0.2
+  bumpSeconds: 0.2
 --- !u!1 &7009393290076247232
 GameObject:
   m_ObjectHideFlags: 0

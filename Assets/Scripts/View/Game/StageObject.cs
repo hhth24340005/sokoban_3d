@@ -22,7 +22,10 @@ public class StageObject : MonoBehaviour
   private float gravityAcceleration = 9.8f;
 
   [SerializeField]
-  private float climbJumpPower = 0.6f;
+  private float climbApexOffset = 0.15f;
+
+  [SerializeField]
+  private float climbDurationMultiplier = 0.6f;
 
   [SerializeField]
   private Ease ease = Ease.OutQuad;
@@ -43,7 +46,7 @@ public class StageObject : MonoBehaviour
     var target = TargetOf(movement, rewind);
     await AnimateAsync(
       () => transform
-        .DOLocalMove(target, DurationOf(rewind))
+        .DOLocalMove(target, DurationOf(animationSeconds, rewind))
         .SetEase(rewind ? easeRewind : ease),
       target,
       ct
@@ -56,15 +59,10 @@ public class StageObject : MonoBehaviour
     CancellationToken ct
   )
   {
+    var start = transform.localPosition;
     var target = TargetOf(movement, rewind);
-    var distance = Mathf.Abs(target.y - transform.localPosition.y);
-    var duration =
-      Mathf.Sqrt(2 * distance / gravityAcceleration) *
-        DurationMultiplier(rewind);
     await AnimateAsync(
-      () => transform
-        .DOLocalMove(target, duration)
-        .SetEase(rewind ? Ease.OutQuad : Ease.InQuad),
+      () => ArcY(start.y, target.y, DurationMultiplier(rewind)),
       target,
       ct
     );
@@ -76,21 +74,37 @@ public class StageObject : MonoBehaviour
     CancellationToken ct
   )
   {
+    if (walkSound)
+    {
+      walkSound.Play();
+    }
+    var start = transform.localPosition;
     var target = TargetOf(movement, rewind);
+    var apexY = Mathf.Max(start.y, target.y) + climbApexOffset;
+    var multiplier = DurationMultiplier(rewind) * climbDurationMultiplier;
+    var total =
+      (ArcSeconds(start.y, apexY) + ArcSeconds(apexY, target.y)) * multiplier;
     await AnimateAsync(
-      () => transform.DOLocalJump(
-        endValue: target,
-        jumpPower: climbJumpPower,
-        numJumps: 1,
-        duration: DurationOf(rewind)
-      ),
+      () => DOTween.Sequence()
+        .Append(ArcY(start.y, apexY, multiplier))
+        .Append(ArcY(apexY, target.y, multiplier))
+        .Insert(0, transform.DOLocalMoveX(target.x, total).SetEase(Ease.Linear))
+        .Insert(0, transform.DOLocalMoveZ(target.z, total).SetEase(Ease.Linear)),
       target,
       ct
     );
   }
 
-  protected float DurationOf(bool rewind) =>
-    animationSeconds * DurationMultiplier(rewind);
+  private Tween ArcY(float fromY, float toY, float multiplier) =>
+    transform
+      .DOLocalMoveY(toY, ArcSeconds(fromY, toY) * multiplier)
+      .SetEase(fromY < toY ? Ease.OutQuad : Ease.InQuad);
+
+  private float ArcSeconds(float fromY, float toY) =>
+    Mathf.Sqrt(2 * Mathf.Abs(toY - fromY) / gravityAcceleration);
+
+  protected float DurationOf(float seconds, bool rewind) =>
+    seconds * DurationMultiplier(rewind);
 
   protected float DurationMultiplier(bool rewind) =>
     rewind ? rewindDurationMultiplier : 1f;
