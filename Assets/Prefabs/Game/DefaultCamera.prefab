@@ -973,7 +973,7 @@ MonoBehaviour:
   compassEase: 30
   animationSeconds: 1.5
   distanceMultiplier: 0.6
-  initialPitchFactor: 0.5
+  initialPitchFactor: 0.75
   pitchLimitDegrees:
     a: -30
     b: 60

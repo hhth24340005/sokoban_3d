@@ -3,7 +3,6 @@ using System.IO;
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.Rendering;
 
 public static class SdfBaker
 {
@@ -47,9 +46,20 @@ public static class SdfBaker
     var height = Mathf.Max(1, Mathf.RoundToInt(paddedSize.y * pixelsPerUnit));
     var spread = padding * pixelsPerUnit * Supersample;
 
-    var mask = RenderMask(sprite, bounds, padding, width * Supersample, height * Supersample);
+    var mask = RasterizeMask(sprite, bounds, padding, width * Supersample, height * Supersample);
     var distance = SignedDistance(mask, width * Supersample, height * Supersample);
     var pixels = Downsample(distance, width, height, spread);
+
+    var covered = mask.Count(it => it);
+    if (covered == 0)
+    {
+      Debug.LogError(
+        $"{AssetDatabase.GetAssetPath(sprite)}: the sprite mesh covered no pixels " +
+        $"({sprite.vertices.Length} vertices, {sprite.triangles.Length / 3} triangles). " +
+        "Nothing was baked."
+      );
+      return;
+    }
 
     var texture = new Texture2D(width, height, TextureFormat.RGBA32, false, true);
     texture.SetPixels(pixels);
@@ -68,7 +78,9 @@ public static class SdfBaker
     );
   }
 
-  private static bool[] RenderMask(
+  /// Scanline rasterization on the CPU, so the bake does not depend on shader
+  /// compilation, render textures or the editor being outside play mode.
+  private static bool[] RasterizeMask(
     Sprite sprite,
     Bounds bounds,
     float padding,
@@ -76,62 +88,63 @@ public static class SdfBaker
     int height
   )
   {
-    var vertices = sprite.vertices;
-    var mesh = new Mesh
+    var origin = new Vector2(bounds.min.x - padding, bounds.min.y - padding);
+    var scale = width / (bounds.size.x + padding * 2f);
+
+    var vertices = sprite.vertices
+      .Select(it => (it - origin) * scale)
+      .ToArray();
+    var triangles = sprite.triangles;
+    var mask = new bool[width * height];
+
+    for (var i = 0; i + 2 < triangles.Length; i += 3)
     {
-      hideFlags = HideFlags.HideAndDontSave,
-      vertices = vertices.Select(it => (Vector3)it).ToArray(),
-      colors = Enumerable.Repeat(Color.white, vertices.Length).ToArray(),
-      triangles = sprite.triangles.Select(it => (int)it).ToArray(),
-    };
+      FillTriangle(
+        mask,
+        width,
+        height,
+        vertices[triangles[i]],
+        vertices[triangles[i + 1]],
+        vertices[triangles[i + 2]]
+      );
+    }
 
-    var material = new Material(Shader.Find("Hidden/Internal-Colored"))
-    {
-      hideFlags = HideFlags.HideAndDontSave
-    };
-    material.SetInt("_SrcBlend", (int)BlendMode.One);
-    material.SetInt("_DstBlend", (int)BlendMode.Zero);
-    material.SetInt("_Cull", (int)CullMode.Off);
-    material.SetInt("_ZWrite", 0);
-    material.SetInt("_ZTest", (int)CompareFunction.Always);
-    material.SetColor("_Color", Color.white);
-
-    var target = RenderTexture.GetTemporary(
-      width,
-      height,
-      0,
-      RenderTextureFormat.ARGB32,
-      RenderTextureReadWrite.Linear
-    );
-    var previous = RenderTexture.active;
-    RenderTexture.active = target;
-
-    GL.Clear(true, true, Color.clear);
-    GL.PushMatrix();
-    GL.LoadIdentity();
-    GL.LoadProjectionMatrix(Matrix4x4.Ortho(
-      bounds.min.x - padding, bounds.max.x + padding,
-      bounds.min.y - padding, bounds.max.y + padding,
-      -1f, 1f
-    ));
-    material.SetPass(0);
-    Graphics.DrawMeshNow(mesh, Matrix4x4.identity);
-    GL.PopMatrix();
-
-    var readback = new Texture2D(width, height, TextureFormat.RGBA32, false, true);
-    readback.ReadPixels(new Rect(0, 0, width, height), 0, 0);
-    readback.Apply();
-
-    RenderTexture.active = previous;
-    RenderTexture.ReleaseTemporary(target);
-
-    var mask = readback.GetPixels32().Select(it => it.a > 127).ToArray();
-
-    Object.DestroyImmediate(readback);
-    Object.DestroyImmediate(material);
-    Object.DestroyImmediate(mesh);
     return mask;
   }
+
+  private static void FillTriangle(
+    bool[] mask,
+    int width,
+    int height,
+    Vector2 a,
+    Vector2 b,
+    Vector2 c
+  )
+  {
+    var left = Mathf.Max(0, Mathf.FloorToInt(Mathf.Min(a.x, b.x, c.x)));
+    var right = Mathf.Min(width - 1, Mathf.CeilToInt(Mathf.Max(a.x, b.x, c.x)));
+    var bottom = Mathf.Max(0, Mathf.FloorToInt(Mathf.Min(a.y, b.y, c.y)));
+    var top = Mathf.Min(height - 1, Mathf.CeilToInt(Mathf.Max(a.y, b.y, c.y)));
+
+    for (var y = bottom; y <= top; y++)
+    {
+      for (var x = left; x <= right; x++)
+      {
+        var point = new Vector2(x + 0.5f, y + 0.5f);
+        var ab = Edge(a, b, point);
+        var bc = Edge(b, c, point);
+        var ca = Edge(c, a, point);
+        // Accept either winding order: the tessellator emits both.
+        if ((ab >= 0f && bc >= 0f && ca >= 0f) || (ab <= 0f && bc <= 0f && ca <= 0f))
+        {
+          mask[y * width + x] = true;
+        }
+      }
+    }
+  }
+
+  private static float Edge(Vector2 from, Vector2 to, Vector2 point) =>
+    (to.x - from.x) * (point.y - from.y) - (to.y - from.y) * (point.x - from.x);
 
   /// Positive inside the shape, negative outside, in pixels.
   private static float[] SignedDistance(bool[] mask, int width, int height)
@@ -255,6 +268,7 @@ public static class SdfBaker
     settings.sRGBTexture = false;
     settings.alphaIsTransparency = false;
     settings.mipmapEnabled = false;
+    settings.npotScale = TextureImporterNPOTScale.None;
     settings.wrapMode = TextureWrapMode.Clamp;
     settings.filterMode = FilterMode.Bilinear;
     importer.SetTextureSettings(settings);

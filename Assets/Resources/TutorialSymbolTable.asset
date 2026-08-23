@@ -34,3 +34,15 @@ MonoBehaviour:
     prefab: {fileID: 5114083548128612202, guid: d9f872ebe0b8d45749caf514143afdae, type: 3}
   - symbol: 62
     prefab: {fileID: 5114083548128612202, guid: 2ea62f0ce93fe4238b2d1bc4a0a5f694, type: 3}
+  - symbol: 80
+    prefab: {fileID: 5114083548128612202, guid: d5dfd9cafb32044a3854965f50040e6e, type: 3}
+  - symbol: 65
+    prefab: {fileID: 5114083548128612202, guid: 295d6ad0e4aef4e189fc715d0624bec2, type: 3}
+  - symbol: 88
+    prefab: {fileID: 5114083548128612202, guid: a079d958454204508818df38b5964a43, type: 3}
+  - symbol: 120
+    prefab: {fileID: 5114083548128612202, guid: aa85aee09803d416f9c12fbf60d52617, type: 3}
+  - symbol: 90
+    prefab: {fileID: 5114083548128612202, guid: 7fb64dd4304164713bef7c42976244a7, type: 3}
+  - symbol: 122
+    prefab: {fileID: 5114083548128612202, guid: b05d13d467d254ccdaa1bb3c411dd497, type: 3}
