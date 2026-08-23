@@ -43,6 +43,12 @@ public sealed class TitleView : MonoBehaviour
   private Button cancelStartButton;
 
   [SerializeField]
+  private CanvasGroup creditsGroup;
+
+  [SerializeField]
+  private Button creditsBackButton;
+
+  [SerializeField]
   private TransitionView startTransitionPrefab;
 
   public async UniTask<
@@ -99,8 +105,9 @@ public sealed class TitleView : MonoBehaviour
           var cts1 =
             CancellationTokenSource.CreateLinkedTokenSource(cts.Token);
           var (_, task) =
-            await UniTask.WhenAny(
-              WaitForStart(parent, tcs, cts1.Token)
+            await UniTask.WhenAny<Func<CancellationToken, UniTask>>(
+              WaitForStart(parent, tcs, cts1.Token),
+              WaitForShowCreditsAsync(cts1.Token)
             );
           cts1.Cancel();
           await task(cts.Token);
@@ -163,6 +170,29 @@ public sealed class TitleView : MonoBehaviour
       stageSelectionGroup.blocksRaycasts = false;
       stageSelectionGroup.interactable = false;
       stageSelectionGroup.alpha = 0f;
+    };
+  }
+
+  private async UniTask<Func<CancellationToken, UniTask>> WaitForShowCreditsAsync(
+    CancellationToken ct
+  )
+  {
+    await creditsButton.OnClickAsync(ct);
+    return async ct1 =>
+    {
+      initialButtonGroup.blocksRaycasts = false;
+      initialButtonGroup.interactable = false;
+      initialButtonGroup.alpha = 0f;
+      creditsGroup.blocksRaycasts = true;
+      creditsGroup.interactable = true;
+      creditsGroup.alpha = 1f;
+      await creditsBackButton.OnClickAsync(ct1);
+      creditsGroup.blocksRaycasts = false;
+      creditsGroup.interactable = false;
+      creditsGroup.alpha = 0f;
+      initialButtonGroup.blocksRaycasts = true;
+      initialButtonGroup.interactable = true;
+      initialButtonGroup.alpha = 1f;
     };
   }
 
