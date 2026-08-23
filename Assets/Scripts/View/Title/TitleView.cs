@@ -19,6 +19,9 @@ public sealed class TitleView : MonoBehaviour
   private float overlayShowSeconds = 1.5f;
 
   [SerializeField]
+  private AudioSource music;
+
+  [SerializeField]
   private CanvasGroup initialButtonGroup;
 
   [SerializeField]
@@ -54,6 +57,7 @@ public sealed class TitleView : MonoBehaviour
     using (parent.CreateChild(this, out var instantiated, copyIfExisting: false))
     {
       await fadeIn(ct);
+      instantiated.music.Play();
       await DOTween.To(
         () => instantiated.overlay.alpha,
         x => instantiated.overlay.alpha = x,
