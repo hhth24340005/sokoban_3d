@@ -151,7 +151,7 @@ MonoBehaviour:
   overlay: {fileID: 1889347677999348033}
   fadeInSeconds: 2
   fadeOutSeconds: 2
-  fadeInEase: 4
+  fadeInEase: 6
   fadeOutEase: 4
 --- !u!1 &6762055655604886490
 GameObject:

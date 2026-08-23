@@ -1,23 +1,50 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Collections.Immutable;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
 
 public sealed class TitleView : MonoBehaviour
 {
   [SerializeField]
+  private CanvasGroup overlay;
+
+  [SerializeField]
+  private Ease overlayEase = Ease.InQuad;
+
+  [SerializeField]
+  private float overlayShowSeconds = 1.5f;
+
+  [SerializeField]
+  private CanvasGroup initialButtonGroup;
+
+  [SerializeField]
   private Button startButton;
+
+  [SerializeField]
+  private Button settingsButton;
+
+  [SerializeField]
+  private Button creditsButton;
+
+  [SerializeField]
+  private CanvasGroup stageSelectionGroup;
 
   [SerializeField]
   private List<StageEntry> stages;
 
   [SerializeField]
+  private Button cancelStartButton;
+
+  [SerializeField]
   private TransitionView startTransitionPrefab;
 
-  public async UniTask<(GameStagePreset result, Func<CancellationToken, UniTask> fadeIn)> PlayAsync(
+  public async UniTask<
+    (GameStagePreset result, Func<CancellationToken, UniTask> fadeIn)
+  > PlayAsync(
     Transform parent,
     Preferences pref,
     Func<CancellationToken, UniTask> fadeIn,
@@ -27,33 +54,112 @@ public sealed class TitleView : MonoBehaviour
     using (parent.CreateChild(this, out var instantiated, copyIfExisting: false))
     {
       await fadeIn(ct);
+      await DOTween.To(
+        () => instantiated.overlay.alpha,
+        x => instantiated.overlay.alpha = x,
+        1f,
+        overlayShowSeconds
+      ).SetEase(overlayEase)
+        .WithCancellation(ct);
+      instantiated.overlay.blocksRaycasts = true;
+      instantiated.overlay.interactable = true;
       return await instantiated.WaitForActionAsync(parent, ct);
     }
   }
 
-  private async UniTask<(GameStagePreset, Func<CancellationToken, UniTask>)> WaitForActionAsync(
+  private async UniTask<
+    (GameStagePreset, Func<CancellationToken, UniTask>)
+ > WaitForActionAsync(
     Transform parent,
     CancellationToken ct
   )
   {
-    var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-    var tcs = new UniTaskCompletionSource<(GameStagePreset, Func<CancellationToken, UniTask<Func<CancellationToken, UniTask>>>)>();
-    WaitForStart(parent, tcs, cts.Token).Forget();
-    (var ret, var fadeOut) = await tcs.Task;
-    cts.Cancel();
-    var fadeIn = await fadeOut(ct);
-    return (ret, fadeIn);
+    var tcs =
+      new UniTaskCompletionSource<
+        (
+          GameStagePreset,
+          Func<
+            CancellationToken,
+            UniTask<Func<CancellationToken, UniTask>>
+          >
+        )
+      >();
+
+    while (true)
+    {
+      var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+      var (hasResult, (stage, fadeOut)) = await UniTask.WhenAny(
+        tcs.Task,
+        UniTask.Create(async () =>
+        {
+          var cts1 =
+            CancellationTokenSource.CreateLinkedTokenSource(cts.Token);
+          var (_, task) =
+            await UniTask.WhenAny(
+              WaitForStart(parent, tcs, cts1.Token)
+            );
+          cts1.Cancel();
+          await task(cts.Token);
+        })
+      );
+      cts.Cancel();
+      if (hasResult)
+      {
+        return (stage, await fadeOut(ct));
+      }
+    }
   }
 
-  private async UniTask WaitForStart(
-    Transform parent,
-    UniTaskCompletionSource<(GameStagePreset, Func<CancellationToken, UniTask<Func<CancellationToken, UniTask>>>)> tcs,
+  private async UniTask<Func<CancellationToken, UniTask>> WaitForStart(
+    Transform transitionParent,
+    UniTaskCompletionSource<
+      (
+        GameStagePreset,
+        Func<
+          CancellationToken,
+          UniTask<Func<CancellationToken, UniTask>>
+        >
+      )
+   > tcs,
     CancellationToken ct
   )
   {
-    await startButton.OnClickAsync(cancellationToken: ct);
-    parent.CreateChild(startTransitionPrefab, out var transition);
-    tcs.TrySetResult((stages.First().Stage, transition.CoverAsync));
+    await startButton.OnClickAsync(ct);
+    return async ct1 =>
+    {
+      initialButtonGroup.blocksRaycasts = false;
+      initialButtonGroup.interactable = false;
+      initialButtonGroup.alpha = 0f;
+
+      stageSelectionGroup.blocksRaycasts = true;
+      stageSelectionGroup.interactable = true;
+      stageSelectionGroup.alpha = 1f;
+
+      var (hasResult, (_, stage)) = await UniTask.WhenAny(
+        UniTask.WhenAny(
+          stages.Select(entry =>
+            entry.Button
+              .OnClickAsync(ct1)
+              .ContinueWith(() => entry.Stage)
+          ).ToImmutableArray()
+        ),
+        cancelStartButton.OnClickAsync(ct1)
+      );
+      if (hasResult)
+      {
+        transitionParent.CreateChild(startTransitionPrefab, out var transition);
+        tcs.TrySetResult((stage, transition.CoverAsync));
+      }
+      else
+      {
+        initialButtonGroup.blocksRaycasts = true;
+        initialButtonGroup.interactable = true;
+        initialButtonGroup.alpha = 1f;
+      }
+      stageSelectionGroup.blocksRaycasts = false;
+      stageSelectionGroup.interactable = false;
+      stageSelectionGroup.alpha = 0f;
+    };
   }
 
   [Serializable]
