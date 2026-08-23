@@ -214,7 +214,7 @@ GameObject:
   - component: {fileID: 9213355242951243108}
   - component: {fileID: 6469214695562418017}
   m_Layer: 0
-  m_Name: ConcreteBlock
+  m_Name: ConcreteBlockDark
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

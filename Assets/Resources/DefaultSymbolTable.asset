@@ -24,3 +24,5 @@ MonoBehaviour:
     prefab: {fileID: 6469214695562418017, guid: c45991e3ca4f14e078a6ca7d3fee6ce4, type: 3}
   - symbol: 35
     prefab: {fileID: 6469214695562418017, guid: 8aaa51bda0ac44e1c9ab00e5a9d8cf19, type: 3}
+  - symbol: 36
+    prefab: {fileID: 6469214695562418017, guid: bc34e55259c254c42b076df93e9ba64a, type: 3}
