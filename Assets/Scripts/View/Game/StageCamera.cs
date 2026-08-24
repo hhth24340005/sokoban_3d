@@ -46,6 +46,8 @@ public sealed class StageCamera : MonoBehaviour
     var angles = pivot.transform.localEulerAngles;
     angles.x = pitchLimitDegrees.Clamp(angles.x);
     pivot.transform.localEulerAngles = angles;
+    compassNeedlePivot.transform.localEulerAngles =
+      new Vector3(compassPitch, 0f, 0f);
     RotateCompassNeedle().Complete();
   }
 
@@ -100,17 +102,40 @@ public sealed class StageCamera : MonoBehaviour
   {
     _compassTween?.Kill();
     var angles = pivot.localEulerAngles;
-    var needleAngles = new Vector3(compassPitch, -angles.y, 0f);
-    var needlePivot = new Vector3(0f, 90f * RotationOf(angles.y), 0f);
+    var needleYaw = -angles.y - compassNeedle.localEulerAngles.y;
+    while (needleYaw < -180f)
+    {
+      needleYaw += 360f;
+    }
+    while (180f < needleYaw)
+    {
+      needleYaw -= 360f;
+    }
+    var needlePivotYaw =
+      90f * RotationOf(angles.y) - compassNeedlePivot.localEulerAngles.y;
+    while (needlePivotYaw < -180f)
+    {
+      needlePivotYaw += 360f;
+    }
+    while (180f < needlePivotYaw)
+    {
+      needlePivotYaw -= 360f;
+    }
     return _compassTween = DOTween.Sequence()
-      .Append(
-        compassNeedlePivot
-          .DOLocalRotate(needlePivot, animationSeconds)
-          .SetEase(compassEase)
-      ).Join(
+      .Join(
         compassNeedle
-          .DOLocalRotate(needleAngles, animationSeconds)
-          .SetEase(compassEase)
+          .DOLocalRotate(
+            new Vector3(0f, needleYaw, 0f),
+            animationSeconds,
+            RotateMode.LocalAxisAdd
+          ).SetEase(compassEase)
+      ).Join(
+        compassNeedlePivot
+          .DOLocalRotate(
+            new Vector3(0f, needlePivotYaw, 0f),
+            animationSeconds,
+            RotateMode.LocalAxisAdd
+          ).SetEase(compassEase)
       );
   }
 
