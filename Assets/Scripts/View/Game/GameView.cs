@@ -66,7 +66,7 @@ public sealed class GameView : MonoBehaviour
         try
         {
           instantiated.OrbitCameraForInputAsync(
-            mouseDelta: gameInput.MoveCamera,
+            pointerPosition: gameInput.MoveCamera,
             camera: stageCamera,
             pref: pref,
             ct: cts.Token
@@ -152,29 +152,41 @@ public sealed class GameView : MonoBehaviour
   }
 
   private async UniTask OrbitCameraForInputAsync(
-    InputAction mouseDelta,
+    InputAction pointerPosition,
     StageCamera camera,
     Preferences pref,
     CancellationToken ct
   )
   {
+    Vector2? previous = null;
+
     void OnPerform(InputAction.CallbackContext ctx)
     {
-      var delta = ctx.ReadValue<Vector2>();
-      camera.OrbitAsync(
-        ct,
-        deltaYaw: delta.x * pref.Current.CameraYawDegreesPerPixel,
-        deltaPitch: delta.y * pref.Current.CameraPitchDegreesPerPixel
-      ).Forget();
+      var current = ctx.ReadValue<Vector2>();
+      if (previous is { } last)
+      {
+        var delta = (current - last) / Screen.height;
+        camera.OrbitAsync(
+          ct,
+          deltaYaw: delta.x * pref.Current.CameraYawDegreesPerScreenHeight,
+          deltaPitch: delta.y * pref.Current.CameraPitchDegreesPerScreenHeight
+        ).Forget();
+      }
+      previous = current;
     }
+
+    void OnCancel(InputAction.CallbackContext ctx) => previous = null;
+
     try
     {
-      mouseDelta.performed += OnPerform;
+      pointerPosition.performed += OnPerform;
+      pointerPosition.canceled += OnCancel;
       await ct.WaitUntilCanceled();
     }
     finally
     {
-      mouseDelta.performed -= OnPerform;
+      pointerPosition.performed -= OnPerform;
+      pointerPosition.canceled -= OnCancel;
     }
   }
 

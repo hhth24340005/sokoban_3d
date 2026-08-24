@@ -18,8 +18,8 @@ public sealed class Preferences
   {
     return new(
       new(
-        CameraYawDegreesPerPixel: def.CameraYawDegreesPerPixel,
-        CameraPitchDegreesPerPixel: def.CameraPitchDegreesPerPixel
+        CameraYawDegreesPerScreenHeight: def.CameraYawDegreesPerScreenHeight,
+        CameraPitchDegreesPerScreenHeight: def.CameraPitchDegreesPerScreenHeight
       )
     );
   }
@@ -37,8 +37,8 @@ public sealed class Preferences
   }
 
   public sealed record State(
-    float CameraYawDegreesPerPixel,
-    float CameraPitchDegreesPerPixel
+    float CameraYawDegreesPerScreenHeight,
+    float CameraPitchDegreesPerScreenHeight
   );
 
 }
