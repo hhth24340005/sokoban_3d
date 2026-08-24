@@ -1,0 +1,63 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 367cb0af7830547fe959169ee26d636e, type: 3}
+  m_Name: Tutorial1
+  m_EditorClassIdentifier: Assembly-CSharp::GameStage
+  symbolTable: {fileID: 11400000, guid: 484808234f09c4f1eaff1b69d05825b9, type: 2}
+  cells:
+  - '......
+
+    ......
+
+    ......
+
+    ......
+
+    ......
+
+    ......'
+  - '......
+
+    ...C..
+
+    ..$#$#
+
+    ......
+
+    ......
+
+    ......'
+  - '.X$#$#
+
+    .X#$#$
+
+    ..$#$#
+
+    ......
+
+    ....B.
+
+    ......'
+  - '..$#$#
+
+    ......
+
+    ......
+
+    ......
+
+    .B.GB.
+
+    ...S..'
+  groundPrefab: {fileID: 7147285430464931746, guid: 921b4f74cd0094be59d91ee7abf83f0c, type: 3}
+  stageCameraPrefab: {fileID: 7554876856681007308, guid: 777a0a28dbd2d4a7e9de8100a48f054e, type: 3}
+  music: {fileID: 8300000, guid: 19ec0d0e8942b42d78d758bda16f08e4, type: 3}
